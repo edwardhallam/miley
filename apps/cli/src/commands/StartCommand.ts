@@ -1,4 +1,4 @@
-import type { EdgeConfig } from "cyrus-core";
+import type { EdgeConfig } from "miley-core";
 import { BaseCommand } from "./ICommand.js";
 
 /**
@@ -11,10 +11,10 @@ export class StartCommand extends BaseCommand {
 			const edgeConfig = this.app.config.load();
 			const repositories = edgeConfig.repositories || [];
 
-			// Check if we're in setup waiting mode (no repositories + CYRUS_SETUP_PENDING flag)
+			// Check if we're in setup waiting mode (no repositories + MILEY_SETUP_PENDING flag)
 			if (
 				repositories.length === 0 &&
-				process.env.CYRUS_SETUP_PENDING === "true"
+				process.env.MILEY_SETUP_PENDING === "true"
 			) {
 				// Enable setup waiting mode and start config watcher
 				this.app.enableSetupWaitingMode();
@@ -78,7 +78,7 @@ export class StartCommand extends BaseCommand {
 				this.logger.info("\n💡 Cloudflare tunnel requires:");
 				this.logger.info("   - CLOUDFLARE_TOKEN environment variable");
 				this.logger.info(
-					`   - Get your token from: ${process.env.CYRUS_APP_URL || "https://app.atcyrus.com"}/onboarding`,
+					`   - Get your token from: ${process.env.MILEY_APP_URL || "https://app.atmiley.com"}/onboarding`,
 				);
 			} else if (error.message?.includes("Failed to connect")) {
 				this.logger.info("\n💡 Connection issues can occur when:");

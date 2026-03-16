@@ -3,10 +3,10 @@ import {
 	type ILogger,
 	type LogContext,
 	type LogLevel,
-} from "cyrus-core";
+} from "miley-core";
 
-// Re-export LogLevel from cyrus-core so existing consumers don't break
-export { LogLevel } from "cyrus-core";
+// Re-export LogLevel from miley-core so existing consumers don't break
+export { LogLevel } from "miley-core";
 
 /**
  * Logger configuration options

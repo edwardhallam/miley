@@ -67,7 +67,7 @@ export interface RepositoryContext {
 	baseBranchName?: string;
 }
 
-export interface CyrusAgentSession {
+export interface MileyAgentSession {
 	/** Unique session identifier (was linearAgentActivitySessionId in v2.0) */
 	id: string;
 	/** External session ID from the issue tracker (e.g., Linear's AgentSession ID) */
@@ -132,7 +132,7 @@ export interface CyrusAgentSession {
 	};
 }
 
-export interface CyrusAgentSessionEntry {
+export interface MileyAgentSessionEntry {
 	claudeSessionId?: string; // originated in this Claude session (if using Claude)
 	geminiSessionId?: string; // originated in this Gemini session (if using Gemini)
 	codexSessionId?: string; // originated in this Codex session (if using Codex)

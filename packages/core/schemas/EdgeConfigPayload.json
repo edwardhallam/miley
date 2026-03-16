@@ -1,5 +1,5 @@
 {
-	"$id": "https://atcyrus.com/schemas/EdgeConfigPayload.json",
+	"$id": "https://atmiley.com/schemas/EdgeConfigPayload.json",
 	"$schema": "https://json-schema.org/draft/2020-12/schema",
 	"type": "object",
 	"properties": {

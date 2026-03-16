@@ -21,16 +21,16 @@ describe("AgentSessionManager - Multi-repo GitHub @ mention routing", () => {
 	};
 
 	const multiRepoWorkspace = {
-		path: "/home/cyrus/.cyrus/worktrees/CYPACK-920",
+		path: "/home/miley/.miley/worktrees/CYPACK-920",
 		isGitWorktree: true,
 		repoPaths: {
-			"repo-a-id": "/home/cyrus/.cyrus/worktrees/CYPACK-920/frontend-app",
-			"repo-b-id": "/home/cyrus/.cyrus/worktrees/CYPACK-920/backend-api",
+			"repo-a-id": "/home/miley/.miley/worktrees/CYPACK-920/frontend-app",
+			"repo-b-id": "/home/miley/.miley/worktrees/CYPACK-920/backend-api",
 		},
 	};
 
 	const singleRepoWorkspace = {
-		path: "/home/cyrus/.cyrus/worktrees/CYPACK-920",
+		path: "/home/miley/.miley/worktrees/CYPACK-920",
 		isGitWorktree: true,
 	};
 
@@ -39,7 +39,7 @@ describe("AgentSessionManager - Multi-repo GitHub @ mention routing", () => {
 	});
 
 	function createMultiRepoSession(sessionId = "session-multi") {
-		manager.createCyrusAgentSession(
+		manager.createMileyAgentSession(
 			sessionId,
 			"issue-1",
 			{
@@ -55,7 +55,7 @@ describe("AgentSessionManager - Multi-repo GitHub @ mention routing", () => {
 	}
 
 	function createSingleRepoSession(sessionId = "session-single") {
-		manager.createCyrusAgentSession(
+		manager.createMileyAgentSession(
 			sessionId,
 			"issue-2",
 			{
@@ -121,7 +121,7 @@ describe("AgentSessionManager - Multi-repo GitHub @ mention routing", () => {
 		const session = manager.getActiveMultiRepoSessionForRepository("repo-b-id");
 		expect(session).not.toBeNull();
 		expect(session!.workspace.repoPaths?.["repo-b-id"]).toBe(
-			"/home/cyrus/.cyrus/worktrees/CYPACK-920/backend-api",
+			"/home/miley/.miley/worktrees/CYPACK-920/backend-api",
 		);
 	});
 

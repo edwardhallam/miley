@@ -1,19 +1,19 @@
 import { readFile } from "node:fs/promises";
 import { LinearClient } from "@linear/sdk";
-import { ClaudeRunner, type HookCallbackMatcher } from "cyrus-claude-runner";
-import type { LinearAgentSessionCreatedWebhook } from "cyrus-core";
+import { ClaudeRunner, type HookCallbackMatcher } from "miley-claude-runner";
+import type { LinearAgentSessionCreatedWebhook } from "miley-core";
 import {
 	isAgentSessionCreatedWebhook,
 	isAgentSessionPromptedWebhook,
-} from "cyrus-core";
-import { GeminiRunner } from "cyrus-gemini-runner";
-import { LinearEventTransport } from "cyrus-linear-event-transport";
+} from "miley-core";
+import { GeminiRunner } from "miley-gemini-runner";
+import { LinearEventTransport } from "miley-linear-event-transport";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentSessionManager } from "../src/AgentSessionManager.js";
 import { EdgeWorker } from "../src/EdgeWorker.js";
 import { SharedApplicationServer } from "../src/SharedApplicationServer.js";
 import type { EdgeWorkerConfig, RepositoryConfig } from "../src/types.js";
-import { TEST_CYRUS_HOME } from "./test-dirs.js";
+import { TEST_MILEY_HOME } from "./test-dirs.js";
 
 // Mock fs/promises
 vi.mock("fs/promises", () => ({
@@ -24,14 +24,14 @@ vi.mock("fs/promises", () => ({
 }));
 
 // Mock dependencies
-vi.mock("cyrus-claude-runner");
-vi.mock("cyrus-codex-runner");
-vi.mock("cyrus-gemini-runner");
-vi.mock("cyrus-linear-event-transport");
+vi.mock("miley-claude-runner");
+vi.mock("miley-codex-runner");
+vi.mock("miley-gemini-runner");
+vi.mock("miley-linear-event-transport");
 vi.mock("@linear/sdk");
 vi.mock("../src/SharedApplicationServer.js");
 vi.mock("../src/AgentSessionManager.js");
-vi.mock("cyrus-core", async (importOriginal) => {
+vi.mock("miley-core", async (importOriginal) => {
 	const actual = (await importOriginal()) as any;
 	return {
 		...actual,
@@ -152,7 +152,7 @@ describe("EdgeWorker - Screenshot Upload Guidance Hooks", () => {
 
 		// Mock AgentSessionManager
 		mockAgentSessionManager = {
-			createCyrusAgentSession: vi.fn(),
+			createMileyAgentSession: vi.fn(),
 			getSession: vi.fn().mockReturnValue({
 				issueId: "issue-123",
 				workspace: { path: "/test/workspaces/TEST-123" },
@@ -210,7 +210,7 @@ Issue: {{issue_identifier}}`;
 
 		mockConfig = {
 			proxyUrl: "http://localhost:3000",
-			cyrusHome: TEST_CYRUS_HOME,
+			mileyHome: TEST_MILEY_HOME,
 			repositories: [mockRepository],
 			linearWorkspaces: {
 				"test-workspace": { linearToken: "test-token" },
@@ -321,7 +321,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus work on this" },
+					comment: { body: "@miley work on this" },
 				},
 			};
 
@@ -351,7 +351,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus take a screenshot" },
+					comment: { body: "@miley take a screenshot" },
 				},
 			};
 
@@ -391,7 +391,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus take a screenshot" },
+					comment: { body: "@miley take a screenshot" },
 				},
 			};
 
@@ -429,7 +429,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus take a browser screenshot" },
+					comment: { body: "@miley take a browser screenshot" },
 				},
 			};
 
@@ -459,7 +459,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus take a browser screenshot" },
+					comment: { body: "@miley take a browser screenshot" },
 				},
 			};
 
@@ -503,7 +503,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus click on a button" },
+					comment: { body: "@miley click on a button" },
 				},
 			};
 
@@ -551,7 +551,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus record and export a gif" },
+					comment: { body: "@miley record and export a gif" },
 				},
 			};
 
@@ -581,7 +581,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus record and export a gif" },
+					comment: { body: "@miley record and export a gif" },
 				},
 			};
 
@@ -626,7 +626,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus take a screenshot" },
+					comment: { body: "@miley take a screenshot" },
 				},
 			};
 
@@ -669,7 +669,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus take a screenshot with devtools" },
+					comment: { body: "@miley take a screenshot with devtools" },
 				},
 			};
 
@@ -701,7 +701,7 @@ Issue: {{issue_identifier}}`;
 						identifier: "TEST-123",
 						team: { key: "TEST" },
 					},
-					comment: { body: "@cyrus take a screenshot with devtools" },
+					comment: { body: "@miley take a screenshot with devtools" },
 				},
 			};
 
@@ -720,7 +720,7 @@ Issue: {{issue_identifier}}`;
 				devtoolsHook!,
 				"mcp__chrome-devtools__take_screenshot",
 				{
-					filePath: "/home/cyrus/cyrus-workspaces/PF-738/step1-screenshot.png",
+					filePath: "/home/miley/miley-workspaces/PF-738/step1-screenshot.png",
 					fullPage: true,
 				},
 				{

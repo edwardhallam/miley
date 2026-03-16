@@ -2,10 +2,10 @@
  * Stub types and classes for removed packages.
  *
  * These packages were removed from the monorepo:
- *   - cyrus-github-event-transport
- *   - cyrus-slack-event-transport
- *   - cyrus-mcp-tools
- *   - cyrus-cloudflare-tunnel-client
+ *   - miley-github-event-transport
+ *   - miley-slack-event-transport
+ *   - miley-mcp-tools
+ *   - miley-cloudflare-tunnel-client
  *
  * This file provides minimal type-compatible stubs so EdgeWorker.ts compiles.
  * The actual functionality (GitHub webhooks, Slack integration, MCP tools server,
@@ -137,7 +137,7 @@ export class SlackEventTransport extends EventEmitter {
 // MCP Tools stubs
 // ---------------------------------------------------------------------------
 
-export interface CyrusToolsOptions {
+export interface MileyToolsOptions {
 	parentSessionId?: string;
 	onSessionCreated?: (childSessionId: string, parentId: string) => void;
 	onFeedbackDelivery?: (
@@ -146,9 +146,9 @@ export interface CyrusToolsOptions {
 	) => Promise<boolean>;
 }
 
-export function createCyrusToolsServer(
+export function createMileyToolsServer(
 	_linearClient: LinearClient,
-	_options?: CyrusToolsOptions,
+	_options?: MileyToolsOptions,
 ): { server: any } {
 	return { server: null };
 }

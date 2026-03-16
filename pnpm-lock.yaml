@@ -41,18 +41,6 @@ importers:
       commander:
         specifier: ^14.0.2
         version: 14.0.2
-      cyrus-claude-runner:
-        specifier: workspace:*
-        version: link:../../packages/claude-runner
-      cyrus-config-updater:
-        specifier: workspace:*
-        version: link:../../packages/config-updater
-      cyrus-core:
-        specifier: workspace:*
-        version: link:../../packages/core
-      cyrus-edge-worker:
-        specifier: workspace:*
-        version: link:../../packages/edge-worker
       dotenv:
         specifier: ^16.5.0
         version: 16.6.1
@@ -68,6 +56,18 @@ importers:
       fs-extra:
         specifier: ^11.3.0
         version: 11.3.2
+      miley-claude-runner:
+        specifier: workspace:*
+        version: link:../../packages/claude-runner
+      miley-config-updater:
+        specifier: workspace:*
+        version: link:../../packages/config-updater
+      miley-core:
+        specifier: workspace:*
+        version: link:../../packages/core
+      miley-edge-worker:
+        specifier: workspace:*
+        version: link:../../packages/edge-worker
       node-fetch:
         specifier: ^2.7.0
         version: 2.7.0
@@ -105,15 +105,15 @@ importers:
       '@linear/sdk':
         specifier: ^64.0.0
         version: 64.0.0
-      cyrus-core:
-        specifier: workspace:*
-        version: link:../core
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1
       fs-extra:
         specifier: ^11.3.2
         version: 11.3.2
+      miley-core:
+        specifier: workspace:*
+        version: link:../core
       zod:
         specifier: 4.3.6
         version: 4.3.6
@@ -139,12 +139,12 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: '>=1.25.2'
         version: 1.25.2(hono@4.11.3)(zod@4.3.6)
-      cyrus-core:
-        specifier: workspace:*
-        version: link:../core
       fastify:
         specifier: ^5.8.1
         version: 5.8.1
+      miley-core:
+        specifier: workspace:*
+        version: link:../core
       zod:
         specifier: 4.3.6
         version: 4.3.6
@@ -198,18 +198,6 @@ importers:
       chokidar:
         specifier: ^4.0.3
         version: 4.0.3
-      cyrus-claude-runner:
-        specifier: workspace:*
-        version: link:../claude-runner
-      cyrus-config-updater:
-        specifier: workspace:*
-        version: link:../config-updater
-      cyrus-core:
-        specifier: workspace:*
-        version: link:../core
-      cyrus-linear-event-transport:
-        specifier: workspace:*
-        version: link:../linear-event-transport
       fastify:
         specifier: ^5.8.1
         version: 5.8.1
@@ -222,6 +210,18 @@ importers:
       ignore:
         specifier: ^7.0.5
         version: 7.0.5
+      miley-claude-runner:
+        specifier: workspace:*
+        version: link:../claude-runner
+      miley-config-updater:
+        specifier: workspace:*
+        version: link:../config-updater
+      miley-core:
+        specifier: workspace:*
+        version: link:../core
+      miley-linear-event-transport:
+        specifier: workspace:*
+        version: link:../linear-event-transport
       zod:
         specifier: 4.3.6
         version: 4.3.6
@@ -250,12 +250,12 @@ importers:
       '@linear/sdk':
         specifier: ^64.0.0
         version: 64.0.0
-      cyrus-core:
-        specifier: workspace:*
-        version: link:../core
       fastify:
         specifier: ^5.8.1
         version: 5.8.1
+      miley-core:
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@types/node':
         specifier: ^20.0.0

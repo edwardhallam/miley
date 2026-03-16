@@ -1,11 +1,11 @@
 /**
- * Shared constants used across Cyrus packages
+ * Shared constants used across Miley packages
  */
 
 /**
- * Default proxy URL for Cyrus hosted services
+ * Default proxy URL for Miley hosted services
  */
-export const DEFAULT_PROXY_URL = "https://cyrus-proxy.ceedar.workers.dev";
+export const DEFAULT_PROXY_URL = "https://miley-proxy.ceedar.workers.dev";
 
 /**
  * Default directory name for git worktrees

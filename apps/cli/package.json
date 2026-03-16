@@ -1,11 +1,11 @@
 {
-	"name": "cyrus-ai",
+	"name": "miley",
 	"version": "0.2.34",
 	"description": "AI-powered Linear issue automation using Claude",
 	"main": "dist/src/app.js",
 	"types": "dist/src/app.d.ts",
 	"bin": {
-		"cyrus": "./dist/src/app.js"
+		"miley": "./dist/src/app.js"
 	},
 	"type": "module",
 	"scripts": {
@@ -42,10 +42,10 @@
 	"dependencies": {
 		"@linear/sdk": "^64.0.0",
 		"commander": "^14.0.2",
-		"cyrus-claude-runner": "workspace:*",
-		"cyrus-config-updater": "workspace:*",
-		"cyrus-core": "workspace:*",
-		"cyrus-edge-worker": "workspace:*",
+		"miley-claude-runner": "workspace:*",
+		"miley-config-updater": "workspace:*",
+		"miley-core": "workspace:*",
+		"miley-edge-worker": "workspace:*",
 		"dotenv": "^16.5.0",
 		"express": "^5.2.0",
 		"fastify": "^5.8.1",

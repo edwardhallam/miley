@@ -5,14 +5,14 @@
  * and determine which procedure (sequence of subroutines) should be executed.
  */
 
-import { SimpleClaudeRunner } from "cyrus-claude-runner";
+import { SimpleClaudeRunner } from "miley-claude-runner";
 import {
-	type CyrusAgentSession,
 	createLogger,
 	type ILogger,
 	type ISimpleAgentRunner,
+	type MileyAgentSession,
 	type RunnerType,
-} from "cyrus-core";
+} from "miley-core";
 import { getProcedureForClassification, PROCEDURES } from "./registry.js";
 import type {
 	ProcedureAnalysisDecision,
@@ -25,7 +25,7 @@ import type {
 export type SimpleRunnerType = RunnerType;
 
 export interface ProcedureAnalyzerConfig {
-	cyrusHome: string;
+	mileyHome: string;
 	model?: string;
 	timeoutMs?: number;
 	runnerType?: SimpleRunnerType; // Default: "claude"
@@ -54,7 +54,7 @@ export class ProcedureAnalyzer {
 				"user-testing",
 				"release",
 			] as const,
-			cyrusHome: config.cyrusHome,
+			mileyHome: config.mileyHome,
 			model: config.model || "haiku",
 			fallbackModel: "sonnet",
 			systemPrompt: this.buildAnalysisSystemPrompt(),
@@ -181,7 +181,7 @@ IMPORTANT: Respond with ONLY the classification word, nothing else.`;
 	 * Get the next subroutine for a session
 	 * Returns null if procedure is complete
 	 */
-	getNextSubroutine(session: CyrusAgentSession): SubroutineDefinition | null {
+	getNextSubroutine(session: MileyAgentSession): SubroutineDefinition | null {
 		const procedureMetadata = session.metadata?.procedure as
 			| ProcedureMetadata
 			| undefined;
@@ -214,7 +214,7 @@ IMPORTANT: Respond with ONLY the classification word, nothing else.`;
 	 * Get the current subroutine for a session
 	 */
 	getCurrentSubroutine(
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 	): SubroutineDefinition | null {
 		const procedureMetadata = session.metadata?.procedure as
 			| ProcedureMetadata
@@ -243,7 +243,7 @@ IMPORTANT: Respond with ONLY the classification word, nothing else.`;
 	 * Initialize procedure metadata for a new session
 	 */
 	initializeProcedureMetadata(
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		procedure: ProcedureDefinition,
 	): void {
 		if (!session.metadata) {
@@ -261,7 +261,7 @@ IMPORTANT: Respond with ONLY the classification word, nothing else.`;
 	 * Record subroutine completion and advance to next
 	 */
 	advanceToNextSubroutine(
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		sessionId: string | null,
 		result?: string,
 	): void {
@@ -300,7 +300,7 @@ IMPORTANT: Respond with ONLY the classification word, nothing else.`;
 	 * Get the result from the last completed subroutine in the history.
 	 * Returns null if there is no history or no result stored.
 	 */
-	getLastSubroutineResult(session: CyrusAgentSession): string | null {
+	getLastSubroutineResult(session: MileyAgentSession): string | null {
 		const procedureMetadata = session.metadata?.procedure as
 			| ProcedureMetadata
 			| undefined;
@@ -320,7 +320,7 @@ IMPORTANT: Respond with ONLY the classification word, nothing else.`;
 	/**
 	 * Check if procedure is complete
 	 */
-	isProcedureComplete(session: CyrusAgentSession): boolean {
+	isProcedureComplete(session: MileyAgentSession): boolean {
 		return this.getNextSubroutine(session) === null;
 	}
 

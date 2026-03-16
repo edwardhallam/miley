@@ -5,7 +5,7 @@ import type {
 	ISimpleAgentRunner,
 	ISimpleAgentRunnerConfig,
 	SDKMessage,
-} from "cyrus-core";
+} from "miley-core";
 import {
 	InvalidResponseError,
 	SimpleAgentError,
@@ -29,10 +29,10 @@ export abstract class SimpleAgentRunner<T extends string>
 				"validResponses must be a non-empty array",
 			);
 		}
-		if (!config.cyrusHome) {
+		if (!config.mileyHome) {
 			throw new SimpleAgentError(
 				SimpleAgentErrorCode.INVALID_CONFIG,
-				"cyrusHome is required",
+				"mileyHome is required",
 			);
 		}
 		this.config = config;

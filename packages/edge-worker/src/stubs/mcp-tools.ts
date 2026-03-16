@@ -1,4 +1,4 @@
-export interface CyrusToolsOptions {
+export interface MileyToolsOptions {
 	parentSessionId?: string;
 	onSessionCreated?: (childSessionId: string, parentId: string) => void;
 	onFeedbackDelivery?: (
@@ -6,9 +6,9 @@ export interface CyrusToolsOptions {
 		message: string,
 	) => Promise<boolean>;
 }
-export function createCyrusToolsServer(
+export function createMileyToolsServer(
 	_client: any,
-	_options?: CyrusToolsOptions,
+	_options?: MileyToolsOptions,
 ): { server: any } {
 	return { server: null };
 }

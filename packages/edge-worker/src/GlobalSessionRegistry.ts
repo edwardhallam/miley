@@ -9,11 +9,11 @@
 
 import { EventEmitter } from "node:events";
 import type {
-	CyrusAgentSession,
-	CyrusAgentSessionEntry,
-	SerializedCyrusAgentSession,
-	SerializedCyrusAgentSessionEntry,
-} from "cyrus-core";
+	MileyAgentSession,
+	MileyAgentSessionEntry,
+	SerializedMileyAgentSession,
+	SerializedMileyAgentSessionEntry,
+} from "miley-core";
 
 /**
  * Serialization format for GlobalSessionRegistry state
@@ -21,8 +21,8 @@ import type {
  */
 export interface SerializedGlobalRegistryState {
 	version: "3.0";
-	sessions: Record<string, SerializedCyrusAgentSession>;
-	entries: Record<string, SerializedCyrusAgentSessionEntry[]>;
+	sessions: Record<string, SerializedMileyAgentSession>;
+	entries: Record<string, SerializedMileyAgentSessionEntry[]>;
 	childToParentMap: Record<string, string>;
 }
 
@@ -30,21 +30,21 @@ export interface SerializedGlobalRegistryState {
  * Events emitted by GlobalSessionRegistry
  */
 export interface GlobalSessionRegistryEvents {
-	sessionCreated: (session: CyrusAgentSession) => void;
+	sessionCreated: (session: MileyAgentSession) => void;
 	sessionUpdated: (
 		sessionId: string,
-		session: CyrusAgentSession,
-		updates: Partial<CyrusAgentSession>,
+		session: MileyAgentSession,
+		updates: Partial<MileyAgentSession>,
 	) => void;
-	sessionCompleted: (sessionId: string, session: CyrusAgentSession) => void;
+	sessionCompleted: (sessionId: string, session: MileyAgentSession) => void;
 }
 
 /**
  * GlobalSessionRegistry centralizes all session storage across repositories.
  *
  * Responsibilities:
- * - Store ALL CyrusAgentSession objects (all repos)
- * - Store ALL CyrusAgentSessionEntry arrays (all repos)
+ * - Store ALL MileyAgentSession objects (all repos)
+ * - Store ALL MileyAgentSessionEntry arrays (all repos)
  * - Maintain parent-child session relationships
  * - Emit lifecycle events for session changes
  * - Support serialization/deserialization for persistence
@@ -54,12 +54,12 @@ export class GlobalSessionRegistry extends EventEmitter {
 	/**
 	 * All sessions keyed by session id
 	 */
-	private sessions: Map<string, CyrusAgentSession> = new Map();
+	private sessions: Map<string, MileyAgentSession> = new Map();
 
 	/**
 	 * All entries keyed by session id
 	 */
-	private entries: Map<string, CyrusAgentSessionEntry[]> = new Map();
+	private entries: Map<string, MileyAgentSessionEntry[]> = new Map();
 
 	/**
 	 * Child session ID → parent session ID mapping
@@ -72,7 +72,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 	 * @param session The session to create
 	 * @throws Error if session with same ID already exists
 	 */
-	createSession(session: CyrusAgentSession): void {
+	createSession(session: MileyAgentSession): void {
 		if (this.sessions.has(session.id)) {
 			throw new Error(`Session with ID ${session.id} already exists`);
 		}
@@ -88,7 +88,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 	 * @param sessionId The session id
 	 * @returns The session or undefined if not found
 	 */
-	getSession(sessionId: string): CyrusAgentSession | undefined {
+	getSession(sessionId: string): MileyAgentSession | undefined {
 		return this.sessions.get(sessionId);
 	}
 
@@ -98,7 +98,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 	 * @param updates Partial session data to merge
 	 * @throws Error if session doesn't exist
 	 */
-	updateSession(sessionId: string, updates: Partial<CyrusAgentSession>): void {
+	updateSession(sessionId: string, updates: Partial<MileyAgentSession>): void {
 		const session = this.sessions.get(sessionId);
 		if (!session) {
 			throw new Error(`Session with ID ${sessionId} not found`);
@@ -142,7 +142,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 	 * Get all sessions
 	 * @returns Array of all sessions
 	 */
-	getAllSessions(): CyrusAgentSession[] {
+	getAllSessions(): MileyAgentSession[] {
 		return Array.from(this.sessions.values());
 	}
 
@@ -152,7 +152,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 	 * @param entry The entry to add
 	 * @throws Error if session doesn't exist
 	 */
-	addEntry(sessionId: string, entry: CyrusAgentSessionEntry): void {
+	addEntry(sessionId: string, entry: MileyAgentSessionEntry): void {
 		if (!this.sessions.has(sessionId)) {
 			throw new Error(`Session with ID ${sessionId} not found`);
 		}
@@ -173,7 +173,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 	 * @param sessionId The session id
 	 * @returns Array of entries (empty if session has no entries or doesn't exist)
 	 */
-	getEntries(sessionId: string): CyrusAgentSessionEntry[] {
+	getEntries(sessionId: string): MileyAgentSessionEntry[] {
 		return this.entries.get(sessionId) || [];
 	}
 
@@ -187,7 +187,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 	updateEntry(
 		sessionId: string,
 		entryIndex: number,
-		updates: Partial<CyrusAgentSessionEntry>,
+		updates: Partial<MileyAgentSessionEntry>,
 	): void {
 		const sessionEntries = this.entries.get(sessionId);
 		if (!sessionEntries) {
@@ -201,7 +201,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 		}
 
 		const existingEntry = sessionEntries[entryIndex]!; // Safe: bounds checked above
-		const updatedEntry: CyrusAgentSessionEntry = {
+		const updatedEntry: MileyAgentSessionEntry = {
 			...existingEntry,
 			...updates,
 			// Ensure required fields are never undefined
@@ -257,7 +257,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 	 * @returns Serialized state
 	 */
 	serializeState(): SerializedGlobalRegistryState {
-		const serializedSessions: Record<string, SerializedCyrusAgentSession> = {};
+		const serializedSessions: Record<string, SerializedMileyAgentSession> = {};
 		const sessionEntries = Array.from(this.sessions.entries());
 		for (const [sessionId, session] of sessionEntries) {
 			// Exclude non-serializable agentRunner
@@ -267,7 +267,7 @@ export class GlobalSessionRegistry extends EventEmitter {
 
 		const serializedEntries: Record<
 			string,
-			SerializedCyrusAgentSessionEntry[]
+			SerializedMileyAgentSessionEntry[]
 		> = Object.fromEntries(Array.from(this.entries.entries()));
 
 		const serializedChildToParent: Record<string, string> = Object.fromEntries(
@@ -295,16 +295,16 @@ export class GlobalSessionRegistry extends EventEmitter {
 
 		// Restore sessions (migrate old sessions without repositories field)
 		for (const [sessionId, session] of Object.entries(state.sessions)) {
-			const migrated: CyrusAgentSession = {
-				...(session as CyrusAgentSession),
-				repositories: (session as CyrusAgentSession).repositories ?? [],
+			const migrated: MileyAgentSession = {
+				...(session as MileyAgentSession),
+				repositories: (session as MileyAgentSession).repositories ?? [],
 			};
 			this.sessions.set(sessionId, migrated);
 		}
 
 		// Restore entries
 		for (const [sessionId, entries] of Object.entries(state.entries)) {
-			this.entries.set(sessionId, entries as CyrusAgentSessionEntry[]);
+			this.entries.set(sessionId, entries as MileyAgentSessionEntry[]);
 		}
 
 		// Restore parent-child mapping

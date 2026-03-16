@@ -4,11 +4,11 @@
  * Provides a human-readable DSL for testing EdgeWorker.assemblePrompt() method.
  */
 
-import type { RepositoryConfig } from "cyrus-core";
+import type { RepositoryConfig } from "miley-core";
 import { expect } from "vitest";
 import { EdgeWorker } from "../src/EdgeWorker.js";
 import type { EdgeWorkerConfig } from "../src/types.js";
-import { TEST_CYRUS_HOME } from "./test-dirs.js";
+import { TEST_MILEY_HOME } from "./test-dirs.js";
 
 /**
  * Create an EdgeWorker instance for testing
@@ -51,7 +51,7 @@ export function createTestWorker(
 	}
 
 	const config: EdgeWorkerConfig = {
-		cyrusHome: TEST_CYRUS_HOME,
+		mileyHome: TEST_MILEY_HOME,
 		claudeDefaultModel: "sonnet",
 		repositories,
 		linearWorkspaces,

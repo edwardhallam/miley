@@ -1,24 +1,24 @@
 import { LinearClient } from "@linear/sdk";
-import { ClaudeRunner } from "cyrus-claude-runner";
-import { LinearEventTransport } from "cyrus-linear-event-transport";
-import { createCyrusToolsServer } from "cyrus-mcp-tools";
+import { ClaudeRunner } from "miley-claude-runner";
+import { LinearEventTransport } from "miley-linear-event-transport";
+import { createMileyToolsServer } from "miley-mcp-tools";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentSessionManager } from "../src/AgentSessionManager.js";
 import { EdgeWorker } from "../src/EdgeWorker.js";
 import { SharedApplicationServer } from "../src/SharedApplicationServer.js";
 import type { EdgeWorkerConfig, RepositoryConfig } from "../src/types.js";
-import { TEST_CYRUS_HOME } from "./test-dirs.js";
+import { TEST_MILEY_HOME } from "./test-dirs.js";
 
 // Mock all dependencies
 vi.mock("fs/promises");
-vi.mock("cyrus-claude-runner");
-vi.mock("cyrus-mcp-tools");
-vi.mock("cyrus-codex-runner");
-vi.mock("cyrus-linear-event-transport");
+vi.mock("miley-claude-runner");
+vi.mock("miley-mcp-tools");
+vi.mock("miley-codex-runner");
+vi.mock("miley-linear-event-transport");
 vi.mock("@linear/sdk");
 vi.mock("../src/SharedApplicationServer.js");
 vi.mock("../src/AgentSessionManager.js");
-vi.mock("cyrus-core", async (importOriginal) => {
+vi.mock("miley-core", async (importOriginal) => {
 	const actual = (await importOriginal()) as any;
 	return {
 		...actual,
@@ -60,8 +60,8 @@ describe("EdgeWorker - Feedback Delivery", () => {
 		mockOnFeedbackDelivery = vi.fn();
 		mockOnSessionCreated = vi.fn();
 
-		// Mock createCyrusToolsServer to return a proper structure
-		vi.mocked(createCyrusToolsServer).mockImplementation((_client, options) => {
+		// Mock createMileyToolsServer to return a proper structure
+		vi.mocked(createMileyToolsServer).mockImplementation((_client, options) => {
 			// Capture the callbacks
 			if (options?.onFeedbackDelivery) {
 				mockOnFeedbackDelivery = options.onFeedbackDelivery;
@@ -156,7 +156,7 @@ describe("EdgeWorker - Feedback Delivery", () => {
 
 		mockConfig = {
 			proxyUrl: "http://localhost:3000",
-			cyrusHome: TEST_CYRUS_HOME,
+			mileyHome: TEST_MILEY_HOME,
 			repositories: [mockRepository],
 			linearWorkspaces: {
 				"test-workspace": { linearToken: "test-token" },
@@ -210,7 +210,7 @@ describe("EdgeWorker - Feedback Delivery", () => {
 				"Please revise your approach and focus on the error handling";
 			const parentSessionId = "parent-session-123";
 
-			// Build MCP config which will trigger createCyrusToolsServer
+			// Build MCP config which will trigger createMileyToolsServer
 			const _mcpConfig = (edgeWorker as any).buildMcpConfig(
 				mockRepository.id,
 				mockRepository.linearWorkspaceId,
@@ -276,7 +276,7 @@ describe("EdgeWorker - Feedback Delivery", () => {
 			const childSessionId = "child-session-456";
 			const feedbackMessage = "Test feedback without known parent";
 
-			// Build MCP config which will trigger createCyrusToolsServer
+			// Build MCP config which will trigger createMileyToolsServer
 			const _mcpConfig = (edgeWorker as any).buildMcpConfig(
 				mockRepository.id,
 				mockRepository.linearWorkspaceId,
@@ -310,7 +310,7 @@ describe("EdgeWorker - Feedback Delivery", () => {
 			const childSessionId = "nonexistent-child-session";
 			const feedbackMessage = "This should fail";
 
-			// Build MCP config which will trigger createCyrusToolsServer
+			// Build MCP config which will trigger createMileyToolsServer
 			const _mcpConfig = (edgeWorker as any).buildMcpConfig(
 				mockRepository.id,
 				mockRepository.linearWorkspaceId,
@@ -340,7 +340,7 @@ describe("EdgeWorker - Feedback Delivery", () => {
 			const childSessionId = "child-session-456";
 			const feedbackMessage = "This should also fail";
 
-			// Build MCP config which will trigger createCyrusToolsServer
+			// Build MCP config which will trigger createMileyToolsServer
 			const _mcpConfig = (edgeWorker as any).buildMcpConfig(
 				mockRepository.id,
 				mockRepository.linearWorkspaceId,
@@ -368,7 +368,7 @@ describe("EdgeWorker - Feedback Delivery", () => {
 			const childSessionId = "child-session-456";
 			const feedbackMessage = "This will cause resume to fail";
 
-			// Build MCP config which will trigger createCyrusToolsServer
+			// Build MCP config which will trigger createMileyToolsServer
 			const _mcpConfig = (edgeWorker as any).buildMcpConfig(
 				mockRepository.id,
 				mockRepository.linearWorkspaceId,
@@ -406,7 +406,7 @@ describe("EdgeWorker - Feedback Delivery", () => {
 			const childSessionId = "child-session-456";
 			const feedbackMessage = "Test feedback across repositories";
 
-			// Build MCP config which will trigger createCyrusToolsServer
+			// Build MCP config which will trigger createMileyToolsServer
 			const _mcpConfig = (edgeWorker as any).buildMcpConfig(
 				mockRepository.id,
 				mockRepository.linearWorkspaceId,
@@ -434,7 +434,7 @@ describe("EdgeWorker - Feedback Delivery", () => {
 		});
 	});
 
-	describe("Integration with cyrus-tools server", () => {
+	describe("Integration with miley-tools server", () => {
 		it("should properly configure feedback delivery callback in MCP config", () => {
 			// Arrange
 			const parentSessionId = "parent-session-123";
@@ -447,10 +447,10 @@ describe("EdgeWorker - Feedback Delivery", () => {
 			);
 
 			// Assert
-			expect(_mcpConfig).toHaveProperty("cyrus-tools");
+			expect(_mcpConfig).toHaveProperty("miley-tools");
 
-			// Verify createCyrusToolsServer was called with correct options
-			expect(createCyrusToolsServer).toHaveBeenCalledWith(
+			// Verify createMileyToolsServer was called with correct options
+			expect(createMileyToolsServer).toHaveBeenCalledWith(
 				expect.any(Object),
 				expect.objectContaining({
 					parentSessionId,
@@ -464,9 +464,9 @@ describe("EdgeWorker - Feedback Delivery", () => {
 			expect(mockOnSessionCreated).toBeDefined();
 		});
 
-		it("should include CYRUS_API_KEY as Authorization header for cyrus-tools MCP config", () => {
-			const previousApiKey = process.env.CYRUS_API_KEY;
-			process.env.CYRUS_API_KEY = "test-cyrus-api-key";
+		it("should include MILEY_API_KEY as Authorization header for miley-tools MCP config", () => {
+			const previousApiKey = process.env.MILEY_API_KEY;
+			process.env.MILEY_API_KEY = "test-miley-api-key";
 
 			try {
 				const mcpConfig = (edgeWorker as any).buildMcpConfig(
@@ -474,45 +474,45 @@ describe("EdgeWorker - Feedback Delivery", () => {
 					mockRepository.linearWorkspaceId,
 					"parent-session-123",
 				);
-				const cyrusToolsConfig = mcpConfig["cyrus-tools"] as {
+				const mileyToolsConfig = mcpConfig["miley-tools"] as {
 					headers?: Record<string, string>;
 				};
 
-				expect(cyrusToolsConfig.headers?.Authorization).toBe(
-					"Bearer test-cyrus-api-key",
+				expect(mileyToolsConfig.headers?.Authorization).toBe(
+					"Bearer test-miley-api-key",
 				);
 			} finally {
 				if (previousApiKey === undefined) {
-					delete process.env.CYRUS_API_KEY;
+					delete process.env.MILEY_API_KEY;
 				} else {
-					process.env.CYRUS_API_KEY = previousApiKey;
+					process.env.MILEY_API_KEY = previousApiKey;
 				}
 			}
 		});
 
-		it("should validate cyrus-tools MCP Authorization header against CYRUS_API_KEY", () => {
-			const previousApiKey = process.env.CYRUS_API_KEY;
-			process.env.CYRUS_API_KEY = "test-cyrus-api-key";
+		it("should validate miley-tools MCP Authorization header against MILEY_API_KEY", () => {
+			const previousApiKey = process.env.MILEY_API_KEY;
+			process.env.MILEY_API_KEY = "test-miley-api-key";
 
 			try {
 				expect(
-					(edgeWorker as any).isCyrusToolsMcpAuthorizationValid(
-						"Bearer test-cyrus-api-key",
+					(edgeWorker as any).isMileyToolsMcpAuthorizationValid(
+						"Bearer test-miley-api-key",
 					),
 				).toBe(true);
 				expect(
-					(edgeWorker as any).isCyrusToolsMcpAuthorizationValid(
+					(edgeWorker as any).isMileyToolsMcpAuthorizationValid(
 						"Bearer wrong-key",
 					),
 				).toBe(false);
 				expect(
-					(edgeWorker as any).isCyrusToolsMcpAuthorizationValid(undefined),
+					(edgeWorker as any).isMileyToolsMcpAuthorizationValid(undefined),
 				).toBe(false);
 			} finally {
 				if (previousApiKey === undefined) {
-					delete process.env.CYRUS_API_KEY;
+					delete process.env.MILEY_API_KEY;
 				} else {
-					process.env.CYRUS_API_KEY = previousApiKey;
+					process.env.MILEY_API_KEY = previousApiKey;
 				}
 			}
 		});

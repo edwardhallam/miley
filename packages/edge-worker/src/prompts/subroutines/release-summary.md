@@ -42,7 +42,7 @@ Create a clear summary of what was released:
 ## Release Complete
 
 **Version**: v0.2.7
-**Published to**: npm (@cyrus-ai/*)
+**Published to**: npm (@miley/*)
 
 ### What's Included
 - Feature X improvements

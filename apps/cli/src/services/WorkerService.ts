@@ -1,6 +1,6 @@
-import type { EdgeWorkerConfig, Issue, RepositoryConfig } from "cyrus-core";
-import type { GitService } from "cyrus-edge-worker";
-import { EdgeWorker } from "cyrus-edge-worker";
+import type { EdgeWorkerConfig, Issue, RepositoryConfig } from "miley-core";
+import type { GitService } from "miley-edge-worker";
+import { EdgeWorker } from "miley-edge-worker";
 import { DEFAULT_SERVER_PORT, parsePort } from "../config/constants.js";
 import type { Workspace } from "../config/types.js";
 import type { ConfigService } from "./ConfigService.js";
@@ -17,7 +17,7 @@ export class WorkerService {
 	constructor(
 		private configService: ConfigService,
 		private gitService: GitService,
-		private cyrusHome: string,
+		private mileyHome: string,
 		private logger: Logger,
 		private version?: string,
 	) {}
@@ -41,14 +41,14 @@ export class WorkerService {
 	 * Used after initial authentication while waiting for server configuration
 	 */
 	async startSetupWaitingMode(): Promise<void> {
-		const { SharedApplicationServer } = await import("cyrus-edge-worker");
-		const { ConfigUpdater } = await import("cyrus-config-updater");
+		const { SharedApplicationServer } = await import("miley-edge-worker");
+		const { ConfigUpdater } = await import("miley-config-updater");
 
 		// Determine server configuration
 		const isExternalHost =
-			process.env.CYRUS_HOST_EXTERNAL?.toLowerCase().trim() === "true";
+			process.env.MILEY_HOST_EXTERNAL?.toLowerCase().trim() === "true";
 		const serverPort = parsePort(
-			process.env.CYRUS_SERVER_PORT,
+			process.env.MILEY_SERVER_PORT,
 			DEFAULT_SERVER_PORT,
 		);
 		const serverHost = isExternalHost ? "0.0.0.0" : "localhost";
@@ -63,14 +63,14 @@ export class WorkerService {
 		// Register ConfigUpdater routes
 		const configUpdater = new ConfigUpdater(
 			this.setupWaitingServer.getFastifyInstance(),
-			this.cyrusHome,
-			process.env.CYRUS_API_KEY || "",
+			this.mileyHome,
+			process.env.MILEY_API_KEY || "",
 		);
 		configUpdater.register();
 
 		this.logger.info("✅ Config updater registered");
 		this.logger.info(
-			"   Routes: /api/update/cyrus-config, /api/update/cyrus-env,",
+			"   Routes: /api/update/miley-config, /api/update/miley-env,",
 		);
 		this.logger.info(
 			"           /api/update/repository, /api/update/test-mcp, /api/update/configure-mcp",
@@ -90,9 +90,9 @@ export class WorkerService {
 
 		this.logger.info("📡 Config updater: Ready");
 		this.logger.raw("");
-		this.logger.info("Your Cyrus instance is ready to receive configuration.");
+		this.logger.info("Your Miley instance is ready to receive configuration.");
 		this.logger.info(
-			`Complete setup at: ${process.env.CYRUS_APP_URL || "https://app.atcyrus.com"}/onboarding`,
+			`Complete setup at: ${process.env.MILEY_APP_URL || "https://app.atmiley.com"}/onboarding`,
 		);
 		this.logger.divider(70);
 	}
@@ -102,14 +102,14 @@ export class WorkerService {
 	 * Used after onboarding when no repositories are configured
 	 */
 	async startIdleMode(): Promise<void> {
-		const { SharedApplicationServer } = await import("cyrus-edge-worker");
-		const { ConfigUpdater } = await import("cyrus-config-updater");
+		const { SharedApplicationServer } = await import("miley-edge-worker");
+		const { ConfigUpdater } = await import("miley-config-updater");
 
 		// Determine server configuration
 		const isExternalHost =
-			process.env.CYRUS_HOST_EXTERNAL?.toLowerCase().trim() === "true";
+			process.env.MILEY_HOST_EXTERNAL?.toLowerCase().trim() === "true";
 		const serverPort = parsePort(
-			process.env.CYRUS_SERVER_PORT,
+			process.env.MILEY_SERVER_PORT,
 			DEFAULT_SERVER_PORT,
 		);
 		const serverHost = isExternalHost ? "0.0.0.0" : "localhost";
@@ -124,14 +124,14 @@ export class WorkerService {
 		// Register ConfigUpdater routes
 		const configUpdater = new ConfigUpdater(
 			this.setupWaitingServer.getFastifyInstance(),
-			this.cyrusHome,
-			process.env.CYRUS_API_KEY || "",
+			this.mileyHome,
+			process.env.MILEY_API_KEY || "",
 		);
 		configUpdater.register();
 
 		this.logger.info("✅ Config updater registered");
 		this.logger.info(
-			"   Routes: /api/update/cyrus-config, /api/update/cyrus-env,",
+			"   Routes: /api/update/miley-config, /api/update/miley-env,",
 		);
 		this.logger.info(
 			"           /api/update/repository, /api/update/test-mcp, /api/update/configure-mcp",
@@ -152,9 +152,9 @@ export class WorkerService {
 		this.logger.info("📡 Config updater: Ready");
 		this.logger.raw("");
 		if (process.env.LINEAR_CLIENT_ID) {
-			this.logger.info("Add a repository with: cyrus self-add-repo <git-url>");
+			this.logger.info("Add a repository with: miley self-add-repo <git-url>");
 		} else {
-			const appUrl = process.env.CYRUS_APP_URL || "https://app.atcyrus.com";
+			const appUrl = process.env.MILEY_APP_URL || "https://app.atmiley.com";
 			this.logger.info(`Waiting for repository configuration from ${appUrl}`);
 			this.logger.info(`Add repositories at: ${appUrl}/repos`);
 		}
@@ -190,7 +190,7 @@ export class WorkerService {
 
 		// Determine if using external host
 		const isExternalHost =
-			process.env.CYRUS_HOST_EXTERNAL?.toLowerCase().trim() === "true";
+			process.env.MILEY_HOST_EXTERNAL?.toLowerCase().trim() === "true";
 
 		// Load config once for model defaults
 		const edgeConfig = this.configService.load();
@@ -199,7 +199,7 @@ export class WorkerService {
 		const config: EdgeWorkerConfig = {
 			version: this.version,
 			repositories,
-			cyrusHome: this.cyrusHome,
+			mileyHome: this.mileyHome,
 			defaultAllowedTools:
 				process.env.ALLOWED_TOOLS?.split(",").map((t) => t.trim()) || [],
 			defaultDisallowedTools:
@@ -208,21 +208,21 @@ export class WorkerService {
 			// Model configuration: environment variables take precedence over config file.
 			// Legacy env vars/keys are still accepted for backwards compatibility.
 			claudeDefaultModel:
-				process.env.CYRUS_CLAUDE_DEFAULT_MODEL ||
-				process.env.CYRUS_DEFAULT_MODEL ||
+				process.env.MILEY_CLAUDE_DEFAULT_MODEL ||
+				process.env.MILEY_DEFAULT_MODEL ||
 				edgeConfig.claudeDefaultModel ||
 				edgeConfig.defaultModel,
 			claudeDefaultFallbackModel:
-				process.env.CYRUS_CLAUDE_DEFAULT_FALLBACK_MODEL ||
-				process.env.CYRUS_DEFAULT_FALLBACK_MODEL ||
+				process.env.MILEY_CLAUDE_DEFAULT_FALLBACK_MODEL ||
+				process.env.MILEY_DEFAULT_FALLBACK_MODEL ||
 				edgeConfig.claudeDefaultFallbackModel ||
 				edgeConfig.defaultFallbackModel,
 			geminiDefaultModel:
-				process.env.CYRUS_GEMINI_DEFAULT_MODEL || edgeConfig.geminiDefaultModel,
+				process.env.MILEY_GEMINI_DEFAULT_MODEL || edgeConfig.geminiDefaultModel,
 			codexDefaultModel:
-				process.env.CYRUS_CODEX_DEFAULT_MODEL || edgeConfig.codexDefaultModel,
+				process.env.MILEY_CODEX_DEFAULT_MODEL || edgeConfig.codexDefaultModel,
 			defaultRunner:
-				(process.env.CYRUS_DEFAULT_RUNNER as
+				(process.env.MILEY_DEFAULT_RUNNER as
 					| "claude"
 					| "gemini"
 					| "codex"
@@ -231,8 +231,8 @@ export class WorkerService {
 			issueUpdateTrigger: edgeConfig.issueUpdateTrigger,
 			promptDefaults: edgeConfig.promptDefaults,
 			linearWorkspaces: edgeConfig.linearWorkspaces,
-			webhookBaseUrl: process.env.CYRUS_BASE_URL,
-			serverPort: parsePort(process.env.CYRUS_SERVER_PORT, DEFAULT_SERVER_PORT),
+			webhookBaseUrl: process.env.MILEY_BASE_URL,
+			serverPort: parsePort(process.env.MILEY_SERVER_PORT, DEFAULT_SERVER_PORT),
 			serverHost: isExternalHost ? "0.0.0.0" : "localhost",
 			ngrokAuthToken,
 			// User access control configuration

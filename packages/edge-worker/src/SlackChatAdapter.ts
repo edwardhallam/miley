@@ -1,5 +1,5 @@
-import type { IAgentRunner, ILogger } from "cyrus-core";
-import { createLogger } from "cyrus-core";
+import type { IAgentRunner, ILogger } from "miley-core";
+import { createLogger } from "miley-core";
 import type { ChatPlatformAdapter } from "./ChatSessionHandler.js";
 
 // Minimal type stubs for Slack support (slack-event-transport package removed)
@@ -158,7 +158,7 @@ ${this.repositoryRoutingContext ? `\n\n${this.repositoryRoutingContext}` : ""}
   - To route the issue to a specific repository, add \`[repo=repo-name]\` to the issue description. To target a specific branch, use \`[repo=repo-name#branch-name]\`. For multiple repos: \`repos=repo1,repo2\`.
   - Assign that Issue to that same user (your own Linear user).
   - That assignment is what immediately kicks off work in your own agent session.
-  - Track execution progress by searching \`mcp__cyrus-tools__linear_get_agent_sessions\` for the active session, then opening it with \`mcp__cyrus-tools__linear_get_agent_session\`.
+  - Track execution progress by searching \`mcp__miley-tools__linear_get_agent_sessions\` for the active session, then opening it with \`mcp__miley-tools__linear_get_agent_session\`.
 
 ## Slack Message Formatting (CRITICAL)
 Your response will be posted as a Slack message. Slack uses its own "mrkdwn" format, which is NOT standard Markdown. You MUST follow these rules exactly.

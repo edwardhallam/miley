@@ -15,14 +15,14 @@ import {
 	type SDKMessage,
 	type SDKUserMessage,
 } from "@anthropic-ai/claude-agent-sdk";
-import type { AskUserQuestionInput } from "cyrus-core";
+import dotenv from "dotenv";
+import type { AskUserQuestionInput } from "miley-core";
 import {
 	createLogger,
 	type IAgentRunner,
 	type ILogger,
 	StreamingPrompt,
-} from "cyrus-core";
-import dotenv from "dotenv";
+} from "miley-core";
 
 // AbortError is no longer exported in v1.0.95, so we define it locally
 export class AbortError extends Error {
@@ -67,7 +67,7 @@ export class ClaudeRunner extends EventEmitter implements IAgentRunner {
 	private readableLogStream: WriteStream | null = null;
 	private messages: SDKMessage[] = [];
 	private streamingPrompt: StreamingPrompt | null = null;
-	private cyrusHome: string;
+	private mileyHome: string;
 	private formatter: IMessageFormatter;
 	private pendingResultMessage: SDKMessage | null = null;
 	private canUseToolCallback: CanUseTool | undefined;
@@ -76,7 +76,7 @@ export class ClaudeRunner extends EventEmitter implements IAgentRunner {
 		super();
 		this.config = config;
 		this.logger = config.logger ?? createLogger({ component: "ClaudeRunner" });
-		this.cyrusHome = config.cyrusHome;
+		this.mileyHome = config.mileyHome;
 		this.formatter = new ClaudeMessageFormatter();
 
 		// Create canUseTool callback if onAskUserQuestion is provided
@@ -610,7 +610,7 @@ export class ClaudeRunner extends EventEmitter implements IAgentRunner {
 		// If logging has already been set up and we now have versions, write the version file
 		if (this.logStream && versions) {
 			try {
-				const logsDir = join(this.cyrusHome, "logs");
+				const logsDir = join(this.mileyHome, "logs");
 				const workspaceName =
 					this.config.workspaceName ||
 					(this.config.workingDirectory
@@ -779,7 +779,7 @@ export class ClaudeRunner extends EventEmitter implements IAgentRunner {
 	}
 
 	/**
-	 * Set up logging to .cyrus directory
+	 * Set up logging to .miley directory
 	 */
 	private setupLogging(): void {
 		try {
@@ -793,8 +793,8 @@ export class ClaudeRunner extends EventEmitter implements IAgentRunner {
 				this.readableLogStream = null;
 			}
 
-			// Create logs directory structure: <cyrusHome>/logs/<workspace-name>/
-			const logsDir = join(this.cyrusHome, "logs");
+			// Create logs directory structure: <mileyHome>/logs/<workspace-name>/
+			const logsDir = join(this.mileyHome, "logs");
 
 			// Get workspace name from config or extract from working directory
 			const workspaceName =

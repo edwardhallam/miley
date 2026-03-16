@@ -1,15 +1,15 @@
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
-import type { McpServerConfig, SDKMessage } from "cyrus-claude-runner";
-import { getReadOnlyTools } from "cyrus-claude-runner";
+import type { McpServerConfig, SDKMessage } from "miley-claude-runner";
+import { getReadOnlyTools } from "miley-claude-runner";
 import type {
 	AgentRunnerConfig,
 	AgentSessionInfo,
-	CyrusAgentSession,
 	IAgentRunner,
 	ILogger,
-} from "cyrus-core";
-import { createLogger } from "cyrus-core";
+	MileyAgentSession,
+} from "miley-core";
+import { createLogger } from "miley-core";
 import { AgentSessionManager } from "./AgentSessionManager.js";
 
 /**
@@ -53,7 +53,7 @@ export interface ChatPlatformAdapter<TEvent> {
  * Callbacks for EdgeWorker integration (same pattern as RepositoryRouterDeps).
  */
 export interface ChatSessionHandlerDeps {
-	cyrusHome: string;
+	mileyHome: string;
 	mcpConfig?: Record<string, McpServerConfig>;
 	chatRepositoryPaths?: string[];
 	/** Factory function that creates the appropriate runner based on config.defaultRunner */
@@ -301,7 +301,7 @@ export class ChatSessionHandler<TEvent> {
 	 */
 	private async resumeSession(
 		event: TEvent,
-		existingSession: CyrusAgentSession,
+		existingSession: MileyAgentSession,
 		sessionId: string,
 		resumeSessionId: string,
 		taskInstructions: string,
@@ -360,7 +360,7 @@ export class ChatSessionHandler<TEvent> {
 		try {
 			const sanitizedKey = threadKey.replace(/[^a-zA-Z0-9.-]/g, "_");
 			const workspacePath = join(
-				this.deps.cyrusHome,
+				this.deps.mileyHome,
 				`${this.adapter.platformName}-workspaces`,
 				sanitizedKey,
 			);
@@ -414,7 +414,7 @@ export class ChatSessionHandler<TEvent> {
 			disallowedTools: [] as string[],
 			allowedDirectories: [workspacePath, ...repositoryPaths],
 			workspaceName,
-			cyrusHome: this.deps.cyrusHome,
+			mileyHome: this.deps.mileyHome,
 			appendSystemPrompt: systemPrompt,
 			...(this.deps.mcpConfig ? { mcpConfig: this.deps.mcpConfig } : {}),
 			...(resumeSessionId ? { resumeSessionId } : {}),

@@ -28,7 +28,7 @@ describe("JSON Schema export", () => {
 		});
 
 		it("has $id", () => {
-			expect(schema.$id).toBe("https://atcyrus.com/schemas/EdgeConfig.json");
+			expect(schema.$id).toBe("https://atmiley.com/schemas/EdgeConfig.json");
 		});
 
 		it("requires repositories", () => {
@@ -179,7 +179,7 @@ describe("JSON Schema export", () => {
 
 			for (const { name, schema } of pairs) {
 				const generated = {
-					$id: `https://atcyrus.com/schemas/${name}.json`,
+					$id: `https://atmiley.com/schemas/${name}.json`,
 					...schema.toJSONSchema({ target: "draft-2020-12" }),
 				};
 				const committed = loadSchema(name);

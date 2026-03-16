@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TEST_CYRUS_HOME } from "./test-dirs.js";
+import { TEST_MILEY_HOME } from "./test-dirs.js";
 
 // Mock dependencies BEFORE imports
-vi.mock("cyrus-claude-runner", () => ({
+vi.mock("miley-claude-runner", () => ({
 	ClaudeRunner: vi.fn(),
 	SimpleClaudeRunner: vi.fn(),
 	SimpleAgentRunner: vi.fn(),
@@ -43,7 +43,7 @@ vi.mock("cyrus-claude-runner", () => ({
 	getCoordinatorTools: vi.fn(() => ["Read", "Task", "Batch"]),
 }));
 vi.mock("@linear/sdk");
-vi.mock("cyrus-linear-event-transport");
+vi.mock("miley-linear-event-transport");
 vi.mock("../src/SharedApplicationServer.js");
 vi.mock("../src/AgentSessionManager.js");
 vi.mock("fs/promises", () => ({
@@ -54,8 +54,8 @@ vi.mock("fs/promises", () => ({
 }));
 
 import { LinearClient } from "@linear/sdk";
-import { getReadOnlyTools, getSafeTools } from "cyrus-claude-runner";
-import { LinearEventTransport } from "cyrus-linear-event-transport";
+import { getReadOnlyTools, getSafeTools } from "miley-claude-runner";
+import { LinearEventTransport } from "miley-linear-event-transport";
 import { AgentSessionManager } from "../src/AgentSessionManager.js";
 import { EdgeWorker } from "../src/EdgeWorker.js";
 import { SharedApplicationServer } from "../src/SharedApplicationServer.js";
@@ -78,7 +78,7 @@ describe("EdgeWorker - Multi-Repo Tool Authorization", () => {
 
 		mockConfig = {
 			proxyUrl: "http://localhost:3000",
-			cyrusHome: TEST_CYRUS_HOME,
+			mileyHome: TEST_MILEY_HOME,
 			defaultAllowedTools: ["Read", "Write", "Edit"],
 			repositories: [
 				{
@@ -195,7 +195,7 @@ describe("EdgeWorker - Multi-Repo Tool Authorization", () => {
 				"Bash",
 				"Edit",
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -225,7 +225,7 @@ describe("EdgeWorker - Multi-Repo Tool Authorization", () => {
 			expect(tools).toEqual([
 				...expectedUnion,
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -244,7 +244,7 @@ describe("EdgeWorker - Multi-Repo Tool Authorization", () => {
 
 			// MCP tools appear exactly once
 			expect(tools.filter((t) => t === "mcp__linear")).toHaveLength(1);
-			expect(tools.filter((t) => t === "mcp__cyrus-tools")).toHaveLength(1);
+			expect(tools.filter((t) => t === "mcp__miley-tools")).toHaveLength(1);
 		});
 
 		it("should include Slack MCP when SLACK_BOT_TOKEN is set for multi-repo", () => {
@@ -276,7 +276,7 @@ describe("EdgeWorker - Multi-Repo Tool Authorization", () => {
 				"Write",
 				"Edit",
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -292,7 +292,7 @@ describe("EdgeWorker - Multi-Repo Tool Authorization", () => {
 			expect(tools).toEqual([
 				...getSafeTools(),
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -309,7 +309,7 @@ describe("EdgeWorker - Multi-Repo Tool Authorization", () => {
 				"Read",
 				"Write",
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -341,7 +341,7 @@ describe("EdgeWorker - Multi-Repo Tool Authorization", () => {
 				"Write",
 				"Bash",
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 	});

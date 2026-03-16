@@ -7,12 +7,12 @@
 
 import type {
 	BaseBranchResolution,
-	CyrusAgentSession,
 	GuidanceRule,
 	Issue,
+	MileyAgentSession,
 	RepositoryConfig,
 	WebhookAgentSession,
-} from "cyrus-core";
+} from "miley-core";
 
 /**
  * Output structure from buildPrompt - contains everything needed to start a Claude session
@@ -68,8 +68,8 @@ export type PromptType =
  */
 export interface PromptAssemblyInput {
 	// ===== Session Context =====
-	/** The Cyrus agent session */
-	session: CyrusAgentSession;
+	/** The Miley agent session */
+	session: MileyAgentSession;
 
 	/** Full issue details */
 	fullIssue: Issue;

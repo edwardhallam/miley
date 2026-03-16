@@ -1,4 +1,4 @@
-import type { AgentActivityContent } from "cyrus-core";
+import type { AgentActivityContent } from "miley-core";
 
 /**
  * String literal type for activity signals.

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TEST_CYRUS_HOME } from "./test-dirs.js";
+import { TEST_MILEY_HOME } from "./test-dirs.js";
 
 // Mock dependencies BEFORE imports
-vi.mock("cyrus-claude-runner", () => ({
+vi.mock("miley-claude-runner", () => ({
 	ClaudeRunner: vi.fn(),
 	SimpleClaudeRunner: vi.fn(),
 	SimpleAgentRunner: vi.fn(),
@@ -42,7 +42,7 @@ vi.mock("cyrus-claude-runner", () => ({
 	]),
 }));
 vi.mock("@linear/sdk");
-vi.mock("cyrus-linear-event-transport");
+vi.mock("miley-linear-event-transport");
 vi.mock("../src/SharedApplicationServer.js");
 vi.mock("../src/AgentSessionManager.js");
 vi.mock("fs/promises", () => ({
@@ -58,8 +58,8 @@ import {
 	getAllTools,
 	getReadOnlyTools,
 	getSafeTools,
-} from "cyrus-claude-runner";
-import { LinearEventTransport } from "cyrus-linear-event-transport";
+} from "miley-claude-runner";
+import { LinearEventTransport } from "miley-linear-event-transport";
 import { AgentSessionManager } from "../src/AgentSessionManager.js";
 import { EdgeWorker } from "../src/EdgeWorker.js";
 import { SharedApplicationServer } from "../src/SharedApplicationServer.js";
@@ -85,7 +85,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 		// Create mock configuration
 		mockConfig = {
 			proxyUrl: "http://localhost:3000",
-			cyrusHome: TEST_CYRUS_HOME,
+			mileyHome: TEST_MILEY_HOME,
 			defaultAllowedTools: ["Read", "Write", "Edit"],
 			repositories: [
 				{
@@ -205,7 +205,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 			expect(debuggerTools).toEqual([
 				...getReadOnlyTools(),
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 
 			// Test builder prompt with custom array
@@ -215,7 +215,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 				"Edit",
 				"Task",
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 
 			// Test scoper prompt with safe preset
@@ -223,7 +223,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 			expect(scoperTools).toEqual([
 				...getSafeTools(),
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -255,7 +255,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 			expect(debuggerTools).toEqual([
 				...getAllTools(),
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 
 			// Test builder prompt with global safe preset
@@ -263,7 +263,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 			expect(builderTools).toEqual([
 				...getSafeTools(),
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 
 			// Test scoper prompt with global custom array
@@ -272,7 +272,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 				"Read",
 				"WebFetch",
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -289,7 +289,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 				"Read",
 				"Write",
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -307,7 +307,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 				"Write",
 				"Edit",
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -328,7 +328,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 			expect(tools).toEqual([
 				...getSafeTools(),
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -342,7 +342,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 			const tools = buildAllowedTools(repository);
 
 			// Should deduplicate Linear MCP tools
-			expect(tools).toEqual(["Read", "mcp__linear", "mcp__cyrus-tools"]);
+			expect(tools).toEqual(["Read", "mcp__linear", "mcp__miley-tools"]);
 			expect(tools.filter((t) => t === "mcp__linear")).toHaveLength(1);
 		});
 
@@ -363,7 +363,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 					"Read",
 					"Write",
 					"mcp__linear",
-					"mcp__cyrus-tools",
+					"mcp__miley-tools",
 					"mcp__slack",
 				]);
 			} finally {
@@ -392,7 +392,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 					"Read",
 					"Write",
 					"mcp__linear",
-					"mcp__cyrus-tools",
+					"mcp__miley-tools",
 				]);
 				expect(tools).not.toContain("mcp__slack");
 			} finally {
@@ -425,7 +425,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 				"Write",
 				"Edit",
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 
 			// New format should work as expected
@@ -433,7 +433,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 			expect(builderTools).toEqual([
 				...getSafeTools(),
 				"mcp__linear",
-				"mcp__cyrus-tools",
+				"mcp__miley-tools",
 			]);
 		});
 
@@ -451,7 +451,7 @@ describe("EdgeWorker - Dynamic Tools Configuration", () => {
 			const buildAllowedTools = getBuildAllowedTools(edgeWorker);
 			const tools = buildAllowedTools(repository, "debugger");
 
-			expect(tools).toEqual(["CustomTool", "mcp__linear", "mcp__cyrus-tools"]);
+			expect(tools).toEqual(["CustomTool", "mcp__linear", "mcp__miley-tools"]);
 		});
 	});
 

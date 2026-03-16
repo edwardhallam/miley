@@ -1,9 +1,9 @@
-import { EdgeConfigPayloadSchema } from "cyrus-core";
+import { EdgeConfigPayloadSchema } from "miley-core";
 import { z } from "zod";
 
 /**
  * Repository configuration payload
- * Matches the format sent by cyrus-hosted
+ * Matches the format sent by miley-hosted
  */
 export interface RepositoryPayload {
 	repository_url: string; // Git clone URL
@@ -13,7 +13,7 @@ export interface RepositoryPayload {
 
 /**
  * Repository deletion payload
- * Sent by cyrus-hosted when removing a repository
+ * Sent by miley-hosted when removing a repository
  */
 export interface DeleteRepositoryPayload {
 	repository_name: string; // Repository name to delete
@@ -21,25 +21,25 @@ export interface DeleteRepositoryPayload {
 }
 
 /**
- * Cyrus config update payload schema
+ * Miley config update payload schema
  * Extends EdgeConfigPayloadSchema with operation flags for the update process.
  * Uses EdgeConfigPayloadSchema (not EdgeConfigSchema) because incoming payloads
  * may omit workspaceBaseDir - the handler applies a default value.
  */
-export const CyrusConfigPayloadSchema = EdgeConfigPayloadSchema.extend({
-	restartCyrus: z.boolean().optional(),
+export const MileyConfigPayloadSchema = EdgeConfigPayloadSchema.extend({
+	restartMiley: z.boolean().optional(),
 	backupConfig: z.boolean().optional(),
 });
 
-export type CyrusConfigPayload = z.infer<typeof CyrusConfigPayloadSchema>;
+export type MileyConfigPayload = z.infer<typeof MileyConfigPayloadSchema>;
 
 /**
- * Cyrus environment variables payload (for Claude token)
+ * Miley environment variables payload (for Claude token)
  */
-export interface CyrusEnvPayload {
+export interface MileyEnvPayload {
 	variables?: Record<string, string>;
 	ANTHROPIC_API_KEY?: string;
-	restartCyrus?: boolean;
+	restartMiley?: boolean;
 	backupEnv?: boolean;
 	[key: string]: string | boolean | Record<string, string> | undefined;
 }
@@ -89,7 +89,7 @@ export interface CheckGhData {
 }
 
 /**
- * Error response to send back to cyrus-hosted
+ * Error response to send back to miley-hosted
  */
 export interface ErrorResponse {
 	success: false;
@@ -98,7 +98,7 @@ export interface ErrorResponse {
 }
 
 /**
- * Success response to send back to cyrus-hosted
+ * Success response to send back to miley-hosted
  */
 export interface SuccessResponse {
 	success: true;

@@ -1,6 +1,6 @@
 export class CloudflareTunnelClient {}
-export function getCyrusAppUrl(): string {
-	return process.env.CYRUS_APP_URL || "https://app.atcyrus.com";
+export function getMileyAppUrl(): string {
+	return process.env.MILEY_APP_URL || "https://app.atmiley.com";
 }
 export class ConfigApiClient {
 	static async getConfig(_key: string): Promise<any> {

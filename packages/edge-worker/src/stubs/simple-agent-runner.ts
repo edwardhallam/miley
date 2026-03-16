@@ -1,1 +1,1 @@
-export { SimpleClaudeRunner } from "cyrus-claude-runner";
+export { SimpleClaudeRunner } from "miley-claude-runner";

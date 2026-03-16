@@ -26,7 +26,7 @@ import type {
 	TranslationResult,
 	UnassignMessage,
 	UserPromptMessage,
-} from "cyrus-core";
+} from "miley-core";
 import {
 	type AgentSessionCreatedWebhook,
 	type AgentSessionPromptedWebhook,
@@ -37,7 +37,7 @@ import {
 	isIssueTitleOrDescriptionUpdateWebhook,
 	isIssueUnassignedWebhook,
 	type Webhook,
-} from "cyrus-core";
+} from "miley-core";
 
 // Helper type for safely accessing nested properties that may not exist in webhook types
 type SafeRecord = Record<string, unknown>;

@@ -1,4 +1,4 @@
-import type { CyrusAgentSession } from "cyrus-core";
+import type { MileyAgentSession } from "miley-core";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AgentSessionManager } from "../src/AgentSessionManager";
 import { ProcedureAnalyzer } from "../src/procedures/ProcedureAnalyzer";
@@ -16,7 +16,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 	beforeEach(() => {
 		// Create ProcedureAnalyzer
 		procedureAnalyzer = new ProcedureAnalyzer({
-			cyrusHome: "/test/.cyrus",
+			mileyHome: "/test/.miley",
 		});
 
 		// Create AgentSessionManager with procedure router
@@ -33,7 +33,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 			const fullDevProcedure = PROCEDURES["full-development"];
 
 			// Step 2: EdgeWorker creates session and initializes procedure metadata
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-123",
 				externalSessionId: "session-123",
 				issueContext: {
@@ -158,7 +158,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 			const docEditProcedure = PROCEDURES["documentation-edit"];
 
 			// Step 2: Create and initialize session
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-456",
 				externalSessionId: "session-456",
 				issueContext: {
@@ -228,7 +228,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 			const simpleQuestionProcedure = PROCEDURES["simple-question"];
 
 			// Step 2: Create and initialize session
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-789",
 				externalSessionId: "session-789",
 				issueContext: {
@@ -282,7 +282,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 	describe("Thought/Action Suppression in AgentSessionManager", () => {
 		it("should suppress thoughts during question-answer subroutine", async () => {
 			// Create a session already at question-answer
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-suppress-1",
 				externalSessionId: "session-suppress-1",
 				issueContext: {
@@ -327,7 +327,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 
 		it("should NOT suppress thoughts during coding-activity subroutine", async () => {
 			// Create a session at coding-activity
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-no-suppress",
 				externalSessionId: "session-no-suppress",
 				issueContext: {
@@ -367,7 +367,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 	describe("Procedure State Reset for New Issues", () => {
 		it("should initialize fresh procedure metadata for each new session", async () => {
 			// First session
-			const session1: CyrusAgentSession = {
+			const session1: MileyAgentSession = {
 				id: "session-1",
 				externalSessionId: "session-1",
 				issueContext: {
@@ -403,7 +403,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 			expect(session1.metadata.procedure?.subroutineHistory).toHaveLength(2);
 
 			// Second session (simulating new issue/comment)
-			const session2: CyrusAgentSession = {
+			const session2: MileyAgentSession = {
 				id: "session-2",
 				externalSessionId: "session-2",
 				issueContext: {
@@ -447,7 +447,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 	describe("Procedure Routing on New Comments", () => {
 		it("should route fresh procedure for each new comment in same session", async () => {
 			// Simulate an existing session that has a procedure already running
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-routing-test",
 				externalSessionId: "session-routing-test",
 				issueContext: {
@@ -514,7 +514,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 	describe("Subroutine Result Storage", () => {
 		it("should store result text in subroutineHistory when advancing", () => {
 			const procedure = PROCEDURES["full-development"];
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-result-1",
 				externalSessionId: "session-result-1",
 				issueContext: {
@@ -568,7 +568,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 
 		it("should not include result in history when no result is provided", () => {
 			const procedure = PROCEDURES["full-development"];
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-no-result",
 				externalSessionId: "session-no-result",
 				issueContext: {
@@ -608,7 +608,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 	describe("getLastSubroutineResult", () => {
 		it("should return the result from the last completed subroutine", () => {
 			const procedure = PROCEDURES["full-development"];
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-last-result",
 				externalSessionId: "session-last-result",
 				issueContext: {
@@ -653,7 +653,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 
 		it("should return null when no subroutines have been completed", () => {
 			const procedure = PROCEDURES["full-development"];
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-empty-result",
 				externalSessionId: "session-empty-result",
 				issueContext: {
@@ -685,7 +685,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 		});
 
 		it("should return null when session has no procedure metadata", () => {
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-no-procedure",
 				externalSessionId: "session-no-procedure",
 				issueContext: {
@@ -716,7 +716,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 
 		it("should return null when last subroutine has no result stored", () => {
 			const procedure = PROCEDURES["full-development"];
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-no-stored-result",
 				externalSessionId: "session-no-stored-result",
 				issueContext: {
@@ -756,7 +756,7 @@ describe("EdgeWorker - Procedure Routing Integration", () => {
 
 	describe("Error Handling", () => {
 		it("should handle errors during procedure execution gracefully", () => {
-			const session: CyrusAgentSession = {
+			const session: MileyAgentSession = {
 				id: "session-error",
 				externalSessionId: "session-error",
 				issueContext: {

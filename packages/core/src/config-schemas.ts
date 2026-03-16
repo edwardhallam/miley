@@ -25,15 +25,15 @@ export const UserIdentifierSchema = z.union([
 export const UserAccessControlConfigSchema = z.object({
 	/**
 	 * Users allowed to delegate issues.
-	 * If specified, ONLY these users can trigger Cyrus sessions.
-	 * Empty array means no one is allowed (effectively disables Cyrus).
+	 * If specified, ONLY these users can trigger Miley sessions.
+	 * Empty array means no one is allowed (effectively disables Miley).
 	 * Omitting this field means everyone is allowed (unless blocked).
 	 */
 	allowedUsers: z.array(UserIdentifierSchema).optional(),
 
 	/**
 	 * Users blocked from delegating issues.
-	 * These users cannot trigger Cyrus sessions.
+	 * These users cannot trigger Miley sessions.
 	 * Takes precedence over allowedUsers.
 	 */
 	blockedUsers: z.array(UserIdentifierSchema).optional(),
@@ -184,7 +184,7 @@ export const RepositoryConfigSchema = z.object({
 });
 
 /**
- * Edge configuration - the serializable configuration stored in ~/.cyrus/config.json
+ * Edge configuration - the serializable configuration stored in ~/.miley/config.json
  *
  * This schema defines all settings that can be persisted to disk.
  * It contains global settings that apply across all repositories,

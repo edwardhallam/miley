@@ -25,49 +25,49 @@ export default defineConfig({
 		alias: {
 			"@": path.resolve(__dirname, "./src"),
 			"@test": path.resolve(__dirname, "./test"),
-			"cyrus-claude-runner": path.resolve(
+			"miley-claude-runner": path.resolve(
 				__dirname,
 				"../claude-runner/src/index.ts",
 			),
-			"cyrus-config-updater": path.resolve(
+			"miley-config-updater": path.resolve(
 				__dirname,
 				"../config-updater/src/index.ts",
 			),
-			"cyrus-linear-event-transport": path.resolve(
+			"miley-linear-event-transport": path.resolve(
 				__dirname,
 				"../linear-event-transport/src/index.ts",
 			),
 			// Aliases for removed packages — separate stub files so vi.mock() works per-package
-			"cyrus-codex-runner": path.resolve(
+			"miley-codex-runner": path.resolve(
 				__dirname,
 				"src/stubs/codex-runner.ts",
 			),
-			"cyrus-cursor-runner": path.resolve(
+			"miley-cursor-runner": path.resolve(
 				__dirname,
 				"src/stubs/cursor-runner.ts",
 			),
-			"cyrus-gemini-runner": path.resolve(
+			"miley-gemini-runner": path.resolve(
 				__dirname,
 				"src/stubs/gemini-runner.ts",
 			),
-			"cyrus-simple-agent-runner": path.resolve(
+			"miley-simple-agent-runner": path.resolve(
 				__dirname,
 				"src/stubs/simple-agent-runner.ts",
 			),
-			"cyrus-mcp-tools": path.resolve(__dirname, "src/stubs/mcp-tools.ts"),
-			"cyrus-cloudflare-tunnel-client": path.resolve(
+			"miley-mcp-tools": path.resolve(__dirname, "src/stubs/mcp-tools.ts"),
+			"miley-cloudflare-tunnel-client": path.resolve(
 				__dirname,
 				"src/stubs/cloudflare-tunnel-client.ts",
 			),
-			"cyrus-github-event-transport/test/fixtures": path.resolve(
+			"miley-github-event-transport/test/fixtures": path.resolve(
 				__dirname,
 				"src/stubs/github-event-transport.ts",
 			),
-			"cyrus-github-event-transport": path.resolve(
+			"miley-github-event-transport": path.resolve(
 				__dirname,
 				"src/stubs/github-event-transport.ts",
 			),
-			"cyrus-slack-event-transport": path.resolve(
+			"miley-slack-event-transport": path.resolve(
 				__dirname,
 				"src/stubs/slack-event-transport.ts",
 			),

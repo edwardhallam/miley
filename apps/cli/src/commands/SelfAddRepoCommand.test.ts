@@ -50,7 +50,7 @@ import { SelfAddRepoCommand } from "./SelfAddRepoCommand.js";
 
 // Mock Application
 const createMockApp = () => ({
-	cyrusHome: "/home/user/.cyrus",
+	mileyHome: "/home/user/.miley",
 	config: {
 		exists: vi.fn().mockReturnValue(true),
 		load: vi.fn(),
@@ -516,7 +516,7 @@ describe("SelfAddRepoCommand", () => {
 			expect(mockExit).toHaveBeenCalledWith(0);
 
 			expect(mocks.mockExecSync).toHaveBeenCalledWith(
-				"git clone https://github.com/user/my-repo.git /home/user/.cyrus/repos/my-repo",
+				"git clone https://github.com/user/my-repo.git /home/user/.miley/repos/my-repo",
 				{ stdio: "inherit" },
 			);
 		});
@@ -609,9 +609,9 @@ describe("SelfAddRepoCommand", () => {
 			expect(addedRepo).toEqual({
 				id: "generated-uuid-123",
 				name: "new-repo",
-				repositoryPath: "/home/user/.cyrus/repos/new-repo",
+				repositoryPath: "/home/user/.miley/repos/new-repo",
 				baseBranch: "main",
-				workspaceBaseDir: "/home/user/.cyrus/worktrees",
+				workspaceBaseDir: "/home/user/.miley/worktrees",
 				linearWorkspaceId: "ws-123",
 				isActive: true,
 				routingLabels: ["new-repo"],

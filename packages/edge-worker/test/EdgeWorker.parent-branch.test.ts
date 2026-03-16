@@ -1,18 +1,18 @@
 import { readFile } from "node:fs/promises";
 import { LinearClient } from "@linear/sdk";
-import { ClaudeRunner } from "cyrus-claude-runner";
-import type { LinearAgentSessionCreatedWebhook } from "cyrus-core";
+import { ClaudeRunner } from "miley-claude-runner";
+import type { LinearAgentSessionCreatedWebhook } from "miley-core";
 import {
 	isAgentSessionCreatedWebhook,
 	isAgentSessionPromptedWebhook,
-} from "cyrus-core";
-import { LinearEventTransport } from "cyrus-linear-event-transport";
+} from "miley-core";
+import { LinearEventTransport } from "miley-linear-event-transport";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentSessionManager } from "../src/AgentSessionManager.js";
 import { EdgeWorker } from "../src/EdgeWorker.js";
 import { SharedApplicationServer } from "../src/SharedApplicationServer.js";
 import type { EdgeWorkerConfig, RepositoryConfig } from "../src/types.js";
-import { TEST_CYRUS_HOME } from "./test-dirs.js";
+import { TEST_MILEY_HOME } from "./test-dirs.js";
 
 // Mock fs/promises
 vi.mock("fs/promises", () => ({
@@ -23,13 +23,13 @@ vi.mock("fs/promises", () => ({
 }));
 
 // Mock dependencies
-vi.mock("cyrus-claude-runner");
-vi.mock("cyrus-codex-runner");
-vi.mock("cyrus-linear-event-transport");
+vi.mock("miley-claude-runner");
+vi.mock("miley-codex-runner");
+vi.mock("miley-linear-event-transport");
 vi.mock("@linear/sdk");
 vi.mock("../src/SharedApplicationServer.js");
 vi.mock("../src/AgentSessionManager.js");
-vi.mock("cyrus-core", async (importOriginal) => {
+vi.mock("miley-core", async (importOriginal) => {
 	const actual = (await importOriginal()) as any;
 	return {
 		...actual,
@@ -123,7 +123,7 @@ describe("EdgeWorker - Parent Branch Handling", () => {
 
 		// Mock AgentSessionManager
 		mockAgentSessionManager = {
-			createCyrusAgentSession: vi.fn(),
+			createMileyAgentSession: vi.fn(),
 			getSession: vi.fn().mockReturnValue({
 				claudeSessionId: "claude-session-123",
 				workspace: { path: "/test/workspaces/TEST-123" },
@@ -183,7 +183,7 @@ Base Branch: {{base_branch}}`;
 
 		mockConfig = {
 			proxyUrl: "http://localhost:3000",
-			cyrusHome: TEST_CYRUS_HOME,
+			mileyHome: TEST_MILEY_HOME,
 			repositories: [mockRepository],
 			linearWorkspaces: {
 				"test-workspace": { linearToken: "test-token" },

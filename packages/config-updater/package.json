@@ -1,7 +1,7 @@
 {
-	"name": "cyrus-config-updater",
+	"name": "miley-config-updater",
 	"version": "0.2.34",
-	"description": "Configuration update handlers for Cyrus agent",
+	"description": "Configuration update handlers for Miley agent",
 	"type": "module",
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -23,7 +23,7 @@
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.25.2",
-		"cyrus-core": "workspace:*",
+		"miley-core": "workspace:*",
 		"fastify": "^5.8.1",
 		"zod": "^4.3.6"
 	},
@@ -36,8 +36,8 @@
 		"config",
 		"update",
 		"handler",
-		"cyrus"
+		"miley"
 	],
-	"author": "Cyrus Team",
+	"author": "Miley Team",
 	"license": "MIT"
 }

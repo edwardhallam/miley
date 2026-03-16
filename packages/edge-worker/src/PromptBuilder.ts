@@ -14,7 +14,7 @@ import {
 	requireLinearWorkspaceId,
 	type WebhookAgentSession,
 	type WebhookComment,
-} from "cyrus-core";
+} from "miley-core";
 import type { GitService } from "./GitService.js";
 import type { SubroutineDefinition } from "./procedures/index.js";
 
@@ -1244,7 +1244,7 @@ ${reply.body}
 				{
 					headers: {
 						Accept: "application/vnd.github.v3+json",
-						"User-Agent": "Cyrus-Agent",
+						"User-Agent": "Miley-Agent",
 					},
 				},
 			);

@@ -30,16 +30,6 @@ export type {
 	SDKResultMessage,
 	SDKUserMessage,
 } from "./agent-runner-types.js";
-export type {
-	BaseBranchResolution,
-	CyrusAgentSession,
-	CyrusAgentSessionEntry,
-	IssueContext,
-	IssueMinimal,
-	RepositoryContext,
-	Workspace,
-} from "./CyrusAgentSession.js";
-
 // Configuration types
 export type {
 	EdgeConfig,
@@ -67,7 +57,6 @@ export {
 	UserAccessControlConfigSchema,
 	UserIdentifierSchema,
 } from "./config-types.js";
-
 // Constants
 export {
 	DEFAULT_BASE_BRANCH,
@@ -140,6 +129,15 @@ export {
 	isIssueUnassignedWebhook,
 	isNewCommentEvent,
 } from "./issue-tracker/index.js";
+export type {
+	BaseBranchResolution,
+	IssueContext,
+	IssueMinimal,
+	MileyAgentSession,
+	MileyAgentSessionEntry,
+	RepositoryContext,
+	Workspace,
+} from "./MileyAgentSession.js";
 // Internal Message Bus
 export type {
 	ContentChanges,
@@ -186,12 +184,12 @@ export {
 	isUnassignMessage,
 	isUserPromptMessage,
 } from "./messages/index.js";
-// Linear adapters have been moved to cyrus-linear-event-transport package
-// Import them directly from that package instead of from cyrus-core
+// Linear adapters have been moved to miley-linear-event-transport package
+// Import them directly from that package instead of from miley-core
 export type {
 	SerializableEdgeWorkerState,
-	SerializedCyrusAgentSession,
-	SerializedCyrusAgentSessionEntry,
+	SerializedMileyAgentSession,
+	SerializedMileyAgentSessionEntry,
 	V3SerializableEdgeWorkerState,
 } from "./PersistenceManager.js";
 export {

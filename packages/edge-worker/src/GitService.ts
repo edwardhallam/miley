@@ -8,8 +8,8 @@ import type {
 	Issue,
 	RepositoryConfig,
 	Workspace,
-} from "cyrus-core";
-import { createLogger, type ILogger } from "cyrus-core";
+} from "miley-core";
+import { createLogger, type ILogger } from "miley-core";
 import { WorktreeIncludeService } from "./WorktreeIncludeService.js";
 
 export interface CreateGitWorktreeOptions {
@@ -825,7 +825,7 @@ export class GitService {
 	}
 
 	/**
-	 * Find and run a repository-specific setup script (cyrus-setup.sh/.ps1/.cmd/.bat)
+	 * Find and run a repository-specific setup script (miley-setup.sh/.ps1/.cmd/.bat)
 	 */
 	private async runRepoSetupScript(
 		repositoryPath: string,
@@ -835,19 +835,19 @@ export class GitService {
 		const isWindows = process.platform === "win32";
 		const setupScripts = [
 			{
-				file: "cyrus-setup.sh",
+				file: "miley-setup.sh",
 				platform: "unix",
 			},
 			{
-				file: "cyrus-setup.ps1",
+				file: "miley-setup.ps1",
 				platform: "windows",
 			},
 			{
-				file: "cyrus-setup.cmd",
+				file: "miley-setup.cmd",
 				platform: "windows",
 			},
 			{
-				file: "cyrus-setup.bat",
+				file: "miley-setup.bat",
 				platform: "windows",
 			},
 		];

@@ -71,7 +71,7 @@ export interface InternalMessageBase {
 	/**
 	 * Session identifier for grouping related messages.
 	 * - Linear: agentSession.id
-	 * - GitHub: owner/repo#pr (e.g., "ceedaragents/cyrus#123")
+	 * - GitHub: owner/repo#pr (e.g., "ceedaragents/miley#123")
 	 * - Slack: channel:thread_ts
 	 */
 	sessionKey: string;

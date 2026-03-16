@@ -1,12 +1,12 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { LinearClient } from "@linear/sdk";
+import Fastify, { type FastifyInstance } from "fastify";
 import {
 	DEFAULT_CONFIG_FILENAME,
 	type EdgeConfig,
 	migrateEdgeConfig,
-} from "cyrus-core";
-import Fastify, { type FastifyInstance } from "fastify";
+} from "miley-core";
 import open from "open";
 import { BaseCommand } from "./ICommand.js";
 
@@ -16,31 +16,31 @@ import { BaseCommand } from "./ICommand.js";
  */
 export class SelfAuthCommand extends BaseCommand {
 	private server: FastifyInstance | null = null;
-	private callbackPort = parseInt(process.env.CYRUS_SERVER_PORT || "3456", 10);
+	private callbackPort = parseInt(process.env.MILEY_SERVER_PORT || "3456", 10);
 
 	async execute(_args: string[]): Promise<void> {
-		console.log("\nCyrus Linear Self-Authentication");
+		console.log("\nMiley Linear Self-Authentication");
 		this.logDivider();
 
 		// Check required environment variables
 		const clientId = process.env.LINEAR_CLIENT_ID;
 		const clientSecret = process.env.LINEAR_CLIENT_SECRET;
-		const baseUrl = process.env.CYRUS_BASE_URL;
+		const baseUrl = process.env.MILEY_BASE_URL;
 
 		if (!clientId || !clientSecret || !baseUrl) {
 			this.logError("Missing required environment variables:");
 			if (!clientId) console.log("   - LINEAR_CLIENT_ID");
 			if (!clientSecret) console.log("   - LINEAR_CLIENT_SECRET");
-			if (!baseUrl) console.log("   - CYRUS_BASE_URL");
-			console.log(`\nAdd these to your env file (${this.app.cyrusHome}/.env):`);
+			if (!baseUrl) console.log("   - MILEY_BASE_URL");
+			console.log(`\nAdd these to your env file (${this.app.mileyHome}/.env):`);
 			console.log("  LINEAR_CLIENT_ID=your-client-id");
 			console.log("  LINEAR_CLIENT_SECRET=your-client-secret");
-			console.log("  CYRUS_BASE_URL=https://your-tunnel-domain.com");
+			console.log("  MILEY_BASE_URL=https://your-tunnel-domain.com");
 			process.exit(1);
 		}
 
 		// Check config file exists
-		const configPath = resolve(this.app.cyrusHome, DEFAULT_CONFIG_FILENAME);
+		const configPath = resolve(this.app.mileyHome, DEFAULT_CONFIG_FILENAME);
 		let config: EdgeConfig;
 		try {
 			config = migrateEdgeConfig(
@@ -48,7 +48,7 @@ export class SelfAuthCommand extends BaseCommand {
 			) as EdgeConfig;
 		} catch {
 			this.logError(`Config file not found: ${configPath}`);
-			console.log("Run 'cyrus' first to create initial configuration.");
+			console.log("Run 'miley' first to create initial configuration.");
 			process.exit(1);
 		}
 
@@ -103,13 +103,13 @@ export class SelfAuthCommand extends BaseCommand {
 			this.logSuccess(`Saved credentials for workspace: ${workspace.name}`);
 			if (config.repositories.length === 0) {
 				console.log(
-					"   No repositories configured yet. Run 'cyrus self-add-repo' to add one.",
+					"   No repositories configured yet. Run 'miley self-add-repo' to add one.",
 				);
 			}
 
 			console.log();
 			this.logSuccess(
-				"Authentication complete! Restart cyrus to use the new tokens.",
+				"Authentication complete! Restart miley to use the new tokens.",
 			);
 			process.exit(0);
 		} catch (error) {
@@ -123,9 +123,9 @@ export class SelfAuthCommand extends BaseCommand {
 
 	private async waitForCallback(clientId: string): Promise<string> {
 		return new Promise((resolve, reject) => {
-			const baseUrl = process.env.CYRUS_BASE_URL;
+			const baseUrl = process.env.MILEY_BASE_URL;
 			if (!baseUrl) {
-				reject(new Error("CYRUS_BASE_URL environment variable is required"));
+				reject(new Error("MILEY_BASE_URL environment variable is required"));
 				return;
 			}
 			const redirectUri = `${baseUrl}/callback`;
@@ -161,7 +161,7 @@ export class SelfAuthCommand extends BaseCommand {
 						.send(`<!DOCTYPE html>
 <html><head><meta charset="utf-8"></head>
 <body style="font-family: system-ui; padding: 40px; text-align: center;">
-<h2>Cyrus authorized successfully</h2>
+<h2>Miley authorized successfully</h2>
 <p>You can close this window and return to the terminal.</p>
 </body></html>`);
 					resolve(code);
@@ -207,7 +207,7 @@ export class SelfAuthCommand extends BaseCommand {
 		clientId: string,
 		clientSecret: string,
 	): Promise<{ accessToken: string; refreshToken?: string }> {
-		const baseUrl = process.env.CYRUS_BASE_URL;
+		const baseUrl = process.env.MILEY_BASE_URL;
 		const redirectUri = `${baseUrl}/callback`;
 
 		// https://linear.app/developers/oauth-2-0-authentication

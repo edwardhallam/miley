@@ -3,15 +3,16 @@ import { EventEmitter } from "node:events";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 import { LinearClient } from "@linear/sdk";
+import { Sessions, streamableHttp } from "fastify-mcp";
 import type {
 	HookCallbackMatcher,
 	HookEvent,
 	McpServerConfig,
 	PostToolUseHookInput,
 	SDKMessage,
-} from "cyrus-claude-runner";
-import { ClaudeRunner } from "cyrus-claude-runner";
-import { ConfigUpdater } from "cyrus-config-updater";
+} from "miley-claude-runner";
+import { ClaudeRunner } from "miley-claude-runner";
+import { ConfigUpdater } from "miley-config-updater";
 import type {
 	AgentActivityCreateInput,
 	AgentEvent,
@@ -20,7 +21,6 @@ import type {
 	AgentSessionPromptedWebhook,
 	BaseBranchResolution,
 	ContentUpdateMessage,
-	CyrusAgentSession,
 	EdgeWorkerConfig,
 	GuidanceRule,
 	IAgentRunner,
@@ -31,6 +31,7 @@ import type {
 	IssueMinimal,
 	IssueUnassignedWebhook,
 	IssueUpdateWebhook,
+	MileyAgentSession,
 	RepositoryConfig,
 	RunnerType,
 	SerializableEdgeWorkerState,
@@ -41,7 +42,7 @@ import type {
 	Webhook,
 	WebhookAgentSession,
 	WebhookIssue,
-} from "cyrus-core";
+} from "miley-core";
 import {
 	CLIIssueTrackerService,
 	CLIRPCServer,
@@ -62,13 +63,12 @@ import {
 	PersistenceManager,
 	requireLinearWorkspaceId,
 	resolvePath,
-} from "cyrus-core";
+} from "miley-core";
 import {
 	LinearEventTransport,
 	LinearIssueTrackerService,
 	type LinearOAuthConfig,
-} from "cyrus-linear-event-transport";
-import { Sessions, streamableHttp } from "fastify-mcp";
+} from "miley-linear-event-transport";
 import { ActivityPoster } from "./ActivityPoster.js";
 import { AgentSessionManager } from "./AgentSessionManager.js";
 import { AskUserQuestionHandler } from "./AskUserQuestionHandler.js";
@@ -97,8 +97,7 @@ import {
 } from "./RepositoryRouter.js";
 import { RunnerSelectionService } from "./RunnerSelectionService.js";
 import {
-	type CyrusToolsOptions,
-	createCyrusToolsServer,
+	createMileyToolsServer,
 	extractCommentAuthor,
 	extractCommentBody,
 	extractCommentId,
@@ -118,6 +117,7 @@ import {
 	isIssueCommentPayload,
 	isPullRequestReviewCommentPayload,
 	isPullRequestReviewPayload,
+	type MileyToolsOptions,
 	SlackEventTransport,
 	type SlackWebhookEvent,
 	stripMention,
@@ -140,16 +140,16 @@ export declare interface EdgeWorker {
 	): boolean;
 }
 
-type CyrusToolsMcpContext = {
+type MileyToolsMcpContext = {
 	contextId?: string;
 };
 
-type CyrusToolsMcpContextEntry = {
+type MileyToolsMcpContextEntry = {
 	contextId: string;
 	linearToken: string;
 	linearClient: import("@linear/sdk").LinearClient;
 	parentSessionId?: string;
-	prebuiltServer?: ReturnType<typeof createCyrusToolsServer>;
+	prebuiltServer?: ReturnType<typeof createMileyToolsServer>;
 	createdAt: number;
 };
 
@@ -176,7 +176,7 @@ export class EdgeWorker extends EventEmitter {
 	private configUpdater: ConfigUpdater | null = null; // Single config updater for configuration updates
 	private persistenceManager: PersistenceManager;
 	private sharedApplicationServer: SharedApplicationServer;
-	private cyrusHome: string;
+	private mileyHome: string;
 	private globalSessionRegistry: GlobalSessionRegistry; // Centralized session storage across all repositories
 	private procedureAnalyzer: ProcedureAnalyzer; // Intelligent workflow routing
 	private configPath?: string; // Path to config.json file
@@ -195,12 +195,12 @@ export class EdgeWorker extends EventEmitter {
 	private activityPoster: ActivityPoster;
 	private configManager: ConfigManager;
 	private promptBuilder: PromptBuilder;
-	private readonly cyrusToolsMcpEndpoint = "/mcp/cyrus-tools";
-	private cyrusToolsMcpRegistered = false;
-	private cyrusToolsMcpContexts = new Map<string, CyrusToolsMcpContextEntry>();
-	private cyrusToolsMcpRequestContext =
-		new AsyncLocalStorage<CyrusToolsMcpContext>();
-	private cyrusToolsMcpSessions = new Sessions<any>();
+	private readonly mileyToolsMcpEndpoint = "/mcp/miley-tools";
+	private mileyToolsMcpRegistered = false;
+	private mileyToolsMcpContexts = new Map<string, MileyToolsMcpContextEntry>();
+	private mileyToolsMcpRequestContext =
+		new AsyncLocalStorage<MileyToolsMcpContext>();
+	private mileyToolsMcpSessions = new Sessions<any>();
 	/**
 	 * Tracks recently processed issue-update webhook keys to prevent
 	 * duplicate deliveries from Linear's at-least-once delivery.
@@ -211,10 +211,10 @@ export class EdgeWorker extends EventEmitter {
 	constructor(config: EdgeWorkerConfig) {
 		super();
 		this.config = config;
-		this.cyrusHome = config.cyrusHome;
+		this.mileyHome = config.mileyHome;
 		this.logger = createLogger({ component: "EdgeWorker" });
 		this.persistenceManager = new PersistenceManager(
-			join(this.cyrusHome, "state"),
+			join(this.mileyHome, "state"),
 		);
 
 		// Initialize GitHub comment service for posting replies to GitHub PRs
@@ -233,7 +233,7 @@ export class EdgeWorker extends EventEmitter {
 					? "gemini-2.5-flash-lite"
 					: "gpt-5";
 		this.procedureAnalyzer = new ProcedureAnalyzer({
-			cyrusHome: this.cyrusHome,
+			mileyHome: this.mileyHome,
 			model: simpleRunnerModel,
 			timeoutMs: 100000,
 			runnerType: simpleRunnerType,
@@ -461,7 +461,7 @@ export class EdgeWorker extends EventEmitter {
 		// Initialize user access control with global and per-repository configs
 		const repoAccessConfigs = new Map<
 			string,
-			import("cyrus-core").UserAccessControlConfig | undefined
+			import("miley-core").UserAccessControlConfig | undefined
 		>();
 		for (const repo of config.repositories) {
 			if (repo.isActive !== false) {
@@ -476,7 +476,7 @@ export class EdgeWorker extends EventEmitter {
 		// Initialize extracted service modules
 		this.attachmentService = new AttachmentService(
 			this.logger,
-			this.cyrusHome,
+			this.mileyHome,
 			this.config.linearWorkspaces || {},
 		);
 		this.runnerSelectionService = new RunnerSelectionService(
@@ -535,7 +535,7 @@ export class EdgeWorker extends EventEmitter {
 								? "gemini-2.5-flash-lite"
 								: "gpt-5";
 					this.procedureAnalyzer = new ProcedureAnalyzer({
-						cyrusHome: this.cyrusHome,
+						mileyHome: this.mileyHome,
 						model: simpleRunnerModel,
 						timeoutMs: 100000,
 						runnerType: simpleRunnerType,
@@ -628,7 +628,7 @@ export class EdgeWorker extends EventEmitter {
 			// Get appropriate secret based on mode
 			const secret = useDirectWebhooks
 				? process.env.LINEAR_WEBHOOK_SECRET || ""
-				: process.env.CYRUS_API_KEY || "";
+				: process.env.MILEY_API_KEY || "";
 
 			this.linearEventTransport = new LinearEventTransport({
 				fastifyServer: this.sharedApplicationServer.getFastifyInstance(),
@@ -674,8 +674,8 @@ export class EdgeWorker extends EventEmitter {
 		// 3. Create and register ConfigUpdater (both platforms)
 		this.configUpdater = new ConfigUpdater(
 			this.sharedApplicationServer.getFastifyInstance(),
-			this.cyrusHome,
-			process.env.CYRUS_API_KEY || "",
+			this.mileyHome,
+			process.env.MILEY_API_KEY || "",
 		);
 
 		// Register config update routes
@@ -683,14 +683,14 @@ export class EdgeWorker extends EventEmitter {
 
 		this.logger.info("✅ Config updater registered");
 		this.logger.info(
-			"   Routes: /api/update/cyrus-config, /api/update/cyrus-env,",
+			"   Routes: /api/update/miley-config, /api/update/miley-env,",
 		);
 		this.logger.info(
 			"           /api/update/repository, /api/update/test-mcp, /api/update/configure-mcp",
 		);
 
-		// 3. Register MCP endpoint for cyrus-tools on the same Fastify server/port
-		await this.registerCyrusToolsMcpEndpoint();
+		// 3. Register MCP endpoint for miley-tools on the same Fastify server/port
+		await this.registerMileyToolsMcpEndpoint();
 		// 4. Register /status endpoint for process activity monitoring
 		this.registerStatusEndpoint();
 
@@ -723,7 +723,7 @@ export class EdgeWorker extends EventEmitter {
 
 		fastify.get("/version", async (_request, reply) => {
 			return reply.status(200).send({
-				cyrus_cli_version: this.config.version ?? null,
+				miley_cli_version: this.config.version ?? null,
 			});
 		});
 
@@ -733,16 +733,16 @@ export class EdgeWorker extends EventEmitter {
 
 	/**
 	 * Register the GitHub event transport for receiving forwarded GitHub webhooks from CYHOST.
-	 * This creates a /github-webhook endpoint that handles @cyrusagent mentions on GitHub PRs.
+	 * This creates a /github-webhook endpoint that handles @mileyagent mentions on GitHub PRs.
 	 */
 	private registerGitHubEventTransport(): void {
 		// Use direct GitHub signature verification only when BOTH:
 		// 1. GITHUB_WEBHOOK_SECRET is set (we have the secret to verify)
-		// 2. CYRUS_HOST_EXTERNAL is true (self-hosted: GitHub sends directly to us)
+		// 2. MILEY_HOST_EXTERNAL is true (self-hosted: GitHub sends directly to us)
 		// On cloud droplets, CYHOST forwards webhooks with Bearer token auth
 		// (it verifies the GitHub signature itself and doesn't forward the headers).
 		const isExternalHost =
-			process.env.CYRUS_HOST_EXTERNAL?.toLowerCase().trim() === "true";
+			process.env.MILEY_HOST_EXTERNAL?.toLowerCase().trim() === "true";
 		const hasGithubWebhookSecret =
 			process.env.GITHUB_WEBHOOK_SECRET != null &&
 			process.env.GITHUB_WEBHOOK_SECRET !== "";
@@ -750,7 +750,7 @@ export class EdgeWorker extends EventEmitter {
 		const verificationMode = useSignatureVerification ? "signature" : "proxy";
 		const secret = useSignatureVerification
 			? process.env.GITHUB_WEBHOOK_SECRET!
-			: process.env.CYRUS_API_KEY || "";
+			: process.env.MILEY_API_KEY || "";
 
 		this.gitHubEventTransport = new GitHubEventTransport({
 			fastifyServer: this.sharedApplicationServer.getFastifyInstance(),
@@ -822,7 +822,7 @@ export class EdgeWorker extends EventEmitter {
 		this.chatSessionHandler = new ChatSessionHandler(
 			slackAdapter,
 			{
-				cyrusHome: this.cyrusHome,
+				mileyHome: this.mileyHome,
 				chatRepositoryPaths,
 				mcpConfig,
 				createRunner: (config) => {
@@ -847,11 +847,11 @@ export class EdgeWorker extends EventEmitter {
 
 		// Use direct Slack signature verification only when BOTH:
 		// 1. SLACK_SIGNING_SECRET is set (we have the secret to verify)
-		// 2. CYRUS_HOST_EXTERNAL is true (self-hosted: Slack sends directly to us)
+		// 2. MILEY_HOST_EXTERNAL is true (self-hosted: Slack sends directly to us)
 		// On cloud droplets, CYHOST forwards webhooks with Bearer token auth
 		// (it verifies the Slack signature itself and doesn't forward the headers).
 		const isExternalHost =
-			process.env.CYRUS_HOST_EXTERNAL?.toLowerCase().trim() === "true";
+			process.env.MILEY_HOST_EXTERNAL?.toLowerCase().trim() === "true";
 		const hasSlackSigningSecret =
 			process.env.SLACK_SIGNING_SECRET != null &&
 			process.env.SLACK_SIGNING_SECRET !== "";
@@ -860,7 +860,7 @@ export class EdgeWorker extends EventEmitter {
 		const slackVerificationMode = useDirectSlackWebhooks ? "direct" : "proxy";
 		const slackSecret = useDirectSlackWebhooks
 			? process.env.SLACK_SIGNING_SECRET!
-			: process.env.CYRUS_API_KEY || "";
+			: process.env.MILEY_API_KEY || "";
 
 		this.slackEventTransport = new SlackEventTransport({
 			fastifyServer: this.sharedApplicationServer.getFastifyInstance(),
@@ -1025,7 +1025,7 @@ export class EdgeWorker extends EventEmitter {
 
 			// For pull_request_review, the review body IS the task context (no mention to strip)
 			// For other events, strip the bot mention to get the task instructions
-			const mentionHandle = botUsername ? `@${botUsername}` : "@cyrusagent";
+			const mentionHandle = botUsername ? `@${botUsername}` : "@mileyagent";
 			const taskInstructions = isPullRequestReview
 				? commentBody ||
 					"A reviewer has requested changes on this PR. Read the review comments to understand what needs to be changed."
@@ -1094,7 +1094,7 @@ export class EdgeWorker extends EventEmitter {
 
 			// Create an internal agent session (no Linear session for GitHub)
 			const githubSessionId = `github-${event.deliveryId}`;
-			agentSessionManager.createCyrusAgentSession(
+			agentSessionManager.createMileyAgentSession(
 				githubSessionId,
 				sessionKey,
 				issueMinimal,
@@ -1512,7 +1512,7 @@ ${taskSection}`;
 	}
 
 	/**
-	 * Compute the current status of the Cyrus process
+	 * Compute the current status of the Miley process
 	 * @returns "idle" if the process can be safely restarted, "busy" if work is in progress
 	 */
 	private computeStatus(): "idle" | "busy" {
@@ -1576,9 +1576,9 @@ ${taskSection}`;
 		// Clear event transport (no explicit cleanup needed, routes are removed when server stops)
 		this.linearEventTransport = null;
 		this.configUpdater = null;
-		this.cyrusToolsMcpContexts.clear();
-		this.cyrusToolsMcpSessions.removeAllListeners();
-		this.cyrusToolsMcpRegistered = false;
+		this.mileyToolsMcpContexts.clear();
+		this.mileyToolsMcpSessions.removeAllListeners();
+		this.mileyToolsMcpRegistered = false;
 
 		// Stop shared application server (this also stops Cloudflare tunnel if running)
 		await this.sharedApplicationServer.stop();
@@ -1702,7 +1702,7 @@ ${taskSection}`;
 	 */
 	private async handleSubroutineTransition(
 		sessionId: string,
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		repo: RepositoryConfig,
 		agentSessionManager: AgentSessionManager,
 	): Promise<void> {
@@ -1772,7 +1772,7 @@ ${taskSection}`;
 	 */
 	private async handleValidationLoopFixer(
 		sessionId: string,
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		repo: RepositoryConfig,
 		agentSessionManager: AgentSessionManager,
 		fixerPrompt: string,
@@ -1809,7 +1809,7 @@ ${taskSection}`;
 	 */
 	private async handleValidationLoopRerun(
 		sessionId: string,
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		repo: RepositoryConfig,
 		agentSessionManager: AgentSessionManager,
 	): Promise<void> {
@@ -2073,7 +2073,7 @@ ${taskSection}`;
 										agentSessionId: session.externalSessionId,
 										content: {
 											type: "response",
-											body: `**Repository Removed from Configuration**\n\nThis repository (\`${repo.name}\`) has been removed from the Cyrus configuration. All active sessions for this repository have been stopped.\n\nIf you need to continue working on this issue, please contact your administrator to restore the repository configuration.`,
+											body: `**Repository Removed from Configuration**\n\nThis repository (\`${repo.name}\`) has been removed from the Miley configuration. All active sessions for this repository have been stopped.\n\nIf you need to continue working on this issue, please contact your administrator to restore the repository configuration.`,
 										},
 									},
 									"repository removal",
@@ -2148,7 +2148,7 @@ ${taskSection}`;
 		this.activeWebhookCount++;
 
 		// Log verbose webhook info if enabled
-		if (process.env.CYRUS_WEBHOOK_DEBUG === "true") {
+		if (process.env.MILEY_WEBHOOK_DEBUG === "true") {
 			this.logger.debug(
 				`Full webhook payload:`,
 				JSON.stringify(webhook, null, 2),
@@ -2175,7 +2175,7 @@ ${taskSection}`;
 				// Handle issue title/description/attachments updates - feed changes into active session
 				await this.handleIssueContentUpdate(webhook);
 			} else {
-				if (process.env.CYRUS_WEBHOOK_DEBUG === "true") {
+				if (process.env.MILEY_WEBHOOK_DEBUG === "true") {
 					this.logger.debug(
 						`Unhandled webhook type: ${(webhook as any).action}`,
 					);
@@ -2215,7 +2215,7 @@ ${taskSection}`;
 		// TODO: When legacy handlers are removed, restore activeWebhookCount tracking here.
 
 		// Log verbose message info if enabled
-		if (process.env.CYRUS_WEBHOOK_DEBUG === "true") {
+		if (process.env.MILEY_WEBHOOK_DEBUG === "true") {
 			this.logger.debug(
 				`Internal message received: ${message.source}/${message.action}`,
 				JSON.stringify(message, null, 2),
@@ -2237,7 +2237,7 @@ ${taskSection}`;
 			} else {
 				// This branch should never be reached due to exhaustive type checking
 				// If it is reached, log the unexpected message for debugging
-				if (process.env.CYRUS_WEBHOOK_DEBUG === "true") {
+				if (process.env.MILEY_WEBHOOK_DEBUG === "true") {
 					const unexpectedMessage = message as InternalMessage;
 					this.logger.debug(
 						`Unhandled message action: ${unexpectedMessage.action}`,
@@ -2428,7 +2428,7 @@ ${taskSection}`;
 	): Promise<void> {
 		// Check if issue update trigger is enabled (defaults to true if not set)
 		if (this.config.issueUpdateTrigger === false) {
-			if (process.env.CYRUS_WEBHOOK_DEBUG === "true") {
+			if (process.env.MILEY_WEBHOOK_DEBUG === "true") {
 				this.logger.debug(
 					"Issue update trigger is disabled, skipping issue content update",
 				);
@@ -2506,7 +2506,7 @@ ${taskSection}`;
 		// Find session(s) for this issue (may be running or paused between subroutines)
 		const sessions = this.agentSessionManager.getSessionsByIssueId(issueId);
 		if (sessions.length === 0) {
-			if (process.env.CYRUS_WEBHOOK_DEBUG === "true") {
+			if (process.env.MILEY_WEBHOOK_DEBUG === "true") {
 				this.logger.debug(
 					`No sessions found for issue ${issueIdentifier} to receive update`,
 				);
@@ -2524,7 +2524,7 @@ ${taskSection}`;
 			}
 			const workspaceFolderName = basename(firstSession.workspace.path);
 			const attachmentsDir = join(
-				this.cyrusHome,
+				this.mileyHome,
 				workspaceFolderName,
 				"attachments",
 			);
@@ -2682,7 +2682,7 @@ ${taskSection}`;
 	}
 
 	/**
-	 * Create a new Cyrus agent session with all necessary setup
+	 * Create a new Miley agent session with all necessary setup
 	 * @param sessionId The Linear agent activity session ID
 	 * @param issue Linear issue object
 	 * @param repositories Repository configurations (primary repo is repositories[0])
@@ -2690,7 +2690,7 @@ ${taskSection}`;
 	 * @param linearWorkspaceId Linear workspace ID (from webhook.organizationId)
 	 * @returns Object containing session details and setup information
 	 */
-	private async createCyrusAgentSession(
+	private async createMileyAgentSession(
 		sessionId: string,
 		issue: { id: string; identifier: string },
 		repositoriesOrSingle: RepositoryConfig | RepositoryConfig[],
@@ -2722,7 +2722,7 @@ ${taskSection}`;
 		// When adding new options here, always update the handler signature in config-types.ts
 		// AND the CLI's handler implementation in WorkerService.ts to pass them through.
 		this.logger.info(
-			`createCyrusAgentSession: passing baseBranchOverrides=${baseBranchOverrides ? `Map(size=${baseBranchOverrides.size}, keys=[${Array.from(baseBranchOverrides.keys()).join(",")}])` : "undefined"}, useCustomHandler=${!!this.config.handlers?.createWorkspace}`,
+			`createMileyAgentSession: passing baseBranchOverrides=${baseBranchOverrides ? `Map(size=${baseBranchOverrides.size}, keys=[${Array.from(baseBranchOverrides.keys()).join(",")}])` : "undefined"}, useCustomHandler=${!!this.config.handlers?.createWorkspace}`,
 		);
 		const workspace = this.config.handlers?.createWorkspace
 			? await this.config.handlers.createWorkspace(fullIssue, repositories, {
@@ -2746,7 +2746,7 @@ ${taskSection}`;
 				workspace.resolvedBaseBranches?.[repo.id]?.branch ?? repo.baseBranch,
 		}));
 
-		agentSessionManager.createCyrusAgentSession(
+		agentSessionManager.createMileyAgentSession(
 			sessionId,
 			issue.id,
 			issueMinimal,
@@ -2804,7 +2804,7 @@ ${taskSection}`;
 		// Pre-create attachments directory even if no attachments exist yet
 		const workspaceFolderName = basename(workspace.path);
 		const attachmentsDir = join(
-			this.cyrusHome,
+			this.mileyHome,
 			workspaceFolderName,
 			"attachments",
 		);
@@ -2878,7 +2878,7 @@ ${taskSection}`;
 				);
 
 			if (routingResult.type === "none") {
-				if (process.env.CYRUS_WEBHOOK_DEBUG === "true") {
+				if (process.env.MILEY_WEBHOOK_DEBUG === "true") {
 					this.logger.info(
 						`No repository configured for webhook from workspace ${webhook.organizationId}`,
 					);
@@ -3030,7 +3030,7 @@ ${taskSection}`;
 		await this.postInstantAcknowledgment(sessionId, linearWorkspaceId);
 
 		// Create the session using the shared method (pass full repositories array)
-		const sessionData = await this.createCyrusAgentSession(
+		const sessionData = await this.createMileyAgentSession(
 			sessionId,
 			issue,
 			repositories,
@@ -3552,8 +3552,8 @@ ${taskSection}`;
 			);
 
 			// Create the session using the shared method
-			// Pass single repo - createCyrusAgentSession normalizes to array internally
-			const sessionData = await this.createCyrusAgentSession(
+			// Pass single repo - createMileyAgentSession normalizes to array internally
+			const sessionData = await this.createMileyAgentSession(
 				sessionId,
 				issue,
 				repository,
@@ -3632,7 +3632,7 @@ ${taskSection}`;
 		// Always set up attachments directory, even if no attachments in current comment
 		const workspaceFolderName = basename(session.workspace.path);
 		const attachmentsDir = join(
-			this.cyrusHome,
+			this.mileyHome,
 			workspaceFolderName,
 			"attachments",
 		);
@@ -3827,7 +3827,7 @@ ${taskSection}`;
 				// All recovery attempts failed - post visible feedback
 				await this.agentSessionManager.createResponseActivity(
 					agentSessionId,
-					"I couldn't process your message because the session configuration was lost. Please create a new session by mentioning me (@cyrus) in a new comment with your prompt.",
+					"I couldn't process your message because the session configuration was lost. Please create a new session by mentioning me (@miley) in a new comment with your prompt.",
 				);
 				this.logger.warn(
 					`Failed to recover repository for prompted webhook ${agentSessionId} - all fallback methods exhausted`,
@@ -4274,8 +4274,8 @@ ${taskSection}`;
 		return this.attachmentService.generateNewAttachmentManifest(result);
 	}
 
-	private async registerCyrusToolsMcpEndpoint(): Promise<void> {
-		if (this.cyrusToolsMcpRegistered) {
+	private async registerMileyToolsMcpEndpoint(): Promise<void> {
+		if (this.mileyToolsMcpRegistered) {
 			return;
 		}
 
@@ -4285,7 +4285,7 @@ ${taskSection}`;
 			typeof fastify.addHook !== "function"
 		) {
 			console.warn(
-				"[EdgeWorker] Skipping cyrus-tools MCP endpoint registration: Fastify instance does not support register/addHook",
+				"[EdgeWorker] Skipping miley-tools MCP endpoint registration: Fastify instance does not support register/addHook",
 			);
 			return;
 		}
@@ -4299,72 +4299,72 @@ ${taskSection}`;
 						: "";
 			const requestPath = rawUrl.split("?")[0];
 
-			if (requestPath !== this.cyrusToolsMcpEndpoint) {
+			if (requestPath !== this.mileyToolsMcpEndpoint) {
 				done();
 				return;
 			}
 
 			if (
-				!this.isCyrusToolsMcpAuthorizationValid(request.headers?.authorization)
+				!this.isMileyToolsMcpAuthorizationValid(request.headers?.authorization)
 			) {
 				_reply.code(401).send({
-					error: "Unauthorized cyrus-tools MCP request",
+					error: "Unauthorized miley-tools MCP request",
 				});
 				done();
 				return;
 			}
 
-			const rawContextHeader = request.headers?.["x-cyrus-mcp-context-id"];
+			const rawContextHeader = request.headers?.["x-miley-mcp-context-id"];
 			const contextId = Array.isArray(rawContextHeader)
 				? rawContextHeader[0]
 				: rawContextHeader;
 
-			this.cyrusToolsMcpRequestContext.run({ contextId }, () => {
+			this.mileyToolsMcpRequestContext.run({ contextId }, () => {
 				done();
 			});
 		});
 
-		this.cyrusToolsMcpSessions.on("connected", (sessionId) => {
+		this.mileyToolsMcpSessions.on("connected", (sessionId) => {
 			console.log(
-				`[EdgeWorker] cyrus-tools MCP session connected: ${sessionId}`,
+				`[EdgeWorker] miley-tools MCP session connected: ${sessionId}`,
 			);
 		});
 
-		this.cyrusToolsMcpSessions.on("terminated", (sessionId) => {
+		this.mileyToolsMcpSessions.on("terminated", (sessionId) => {
 			console.log(
-				`[EdgeWorker] cyrus-tools MCP session terminated: ${sessionId}`,
+				`[EdgeWorker] miley-tools MCP session terminated: ${sessionId}`,
 			);
 		});
 
-		this.cyrusToolsMcpSessions.on("error", (error) => {
-			console.error("[EdgeWorker] cyrus-tools MCP session error:", error);
+		this.mileyToolsMcpSessions.on("error", (error) => {
+			console.error("[EdgeWorker] miley-tools MCP session error:", error);
 		});
 
 		await fastify.register(streamableHttp, {
 			stateful: true,
-			mcpEndpoint: this.cyrusToolsMcpEndpoint,
-			sessions: this.cyrusToolsMcpSessions,
+			mcpEndpoint: this.mileyToolsMcpEndpoint,
+			sessions: this.mileyToolsMcpSessions,
 			createServer: async () => {
 				const contextId =
-					this.cyrusToolsMcpRequestContext.getStore()?.contextId;
+					this.mileyToolsMcpRequestContext.getStore()?.contextId;
 				if (!contextId) {
 					throw new Error(
-						"Missing x-cyrus-mcp-context-id header for cyrus-tools MCP request",
+						"Missing x-miley-mcp-context-id header for miley-tools MCP request",
 					);
 				}
 
-				const context = this.cyrusToolsMcpContexts.get(contextId);
+				const context = this.mileyToolsMcpContexts.get(contextId);
 				if (!context) {
 					throw new Error(
-						`Unknown cyrus-tools MCP context '${contextId}'. Build MCP config before connecting.`,
+						`Unknown miley-tools MCP context '${contextId}'. Build MCP config before connecting.`,
 					);
 				}
 
 				const sdkServer =
 					context.prebuiltServer ||
-					createCyrusToolsServer(
+					createMileyToolsServer(
 						context.linearClient,
-						this.createCyrusToolsOptions(context.parentSessionId),
+						this.createMileyToolsOptions(context.parentSessionId),
 					);
 				context.prebuiltServer = undefined;
 
@@ -4372,13 +4372,13 @@ ${taskSection}`;
 			},
 		});
 
-		this.cyrusToolsMcpRegistered = true;
+		this.mileyToolsMcpRegistered = true;
 		console.log(
-			`✅ Cyrus tools MCP endpoint registered at ${this.cyrusToolsMcpEndpoint}`,
+			`✅ Miley tools MCP endpoint registered at ${this.mileyToolsMcpEndpoint}`,
 		);
 	}
 
-	private createCyrusToolsOptions(parentSessionId?: string): CyrusToolsOptions {
+	private createMileyToolsOptions(parentSessionId?: string): MileyToolsOptions {
 		return {
 			parentSessionId,
 			onSessionCreated: (childSessionId, parentId) => {
@@ -4532,7 +4532,7 @@ ${taskSection}`;
 		return true;
 	}
 
-	private buildCyrusToolsMcpContextId(
+	private buildMileyToolsMcpContextId(
 		repoId: string,
 		parentSessionId?: string,
 	): string {
@@ -4543,7 +4543,7 @@ ${taskSection}`;
 		return `${repoId}:anon:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
 	}
 
-	private getCyrusToolsMcpUrl(): string {
+	private getMileyToolsMcpUrl(): string {
 		const server = this.sharedApplicationServer as {
 			getPort?: () => number;
 		};
@@ -4551,32 +4551,32 @@ ${taskSection}`;
 			typeof server.getPort === "function"
 				? server.getPort()
 				: this.config.serverPort || this.config.webhookPort || 3456;
-		return `http://127.0.0.1:${port}${this.cyrusToolsMcpEndpoint}`;
+		return `http://127.0.0.1:${port}${this.mileyToolsMcpEndpoint}`;
 	}
 
-	private pruneCyrusToolsMcpContexts(maxEntries: number = 500): void {
-		if (this.cyrusToolsMcpContexts.size <= maxEntries) {
+	private pruneMileyToolsMcpContexts(maxEntries: number = 500): void {
+		if (this.mileyToolsMcpContexts.size <= maxEntries) {
 			return;
 		}
 
-		const entriesByAge = Array.from(this.cyrusToolsMcpContexts.entries()).sort(
+		const entriesByAge = Array.from(this.mileyToolsMcpContexts.entries()).sort(
 			(a, b) => a[1].createdAt - b[1].createdAt,
 		);
 
-		const pruneCount = this.cyrusToolsMcpContexts.size - maxEntries;
+		const pruneCount = this.mileyToolsMcpContexts.size - maxEntries;
 		for (let i = 0; i < pruneCount; i++) {
 			const entry = entriesByAge[i];
 			if (!entry) {
 				break;
 			}
 			const [contextId] = entry;
-			this.cyrusToolsMcpContexts.delete(contextId);
+			this.mileyToolsMcpContexts.delete(contextId);
 		}
 	}
 
 	/**
-	 * Build MCP configuration with automatic Linear server injection and cyrus-tools over Fastify MCP.
-	 * Workspace-level servers (Linear, cyrus-tools, Slack) are configured once using workspace-level token.
+	 * Build MCP configuration with automatic Linear server injection and miley-tools over Fastify MCP.
+	 * Workspace-level servers (Linear, miley-tools, Slack) are configured once using workspace-level token.
 	 * @param repoId - Repository ID for MCP context scoping
 	 * @param linearWorkspaceId - Linear workspace ID (from webhook.organizationId or repo config)
 	 * @param options.excludeSlackMcp - When true, excludes the Slack MCP server even if SLACK_BOT_TOKEN is set (e.g., for GitHub sessions)
@@ -4587,7 +4587,7 @@ ${taskSection}`;
 		parentSessionId?: string,
 		options?: { excludeSlackMcp?: boolean },
 	): Record<string, McpServerConfig> {
-		const contextId = this.buildCyrusToolsMcpContextId(repoId, parentSessionId);
+		const contextId = this.buildMileyToolsMcpContextId(repoId, parentSessionId);
 
 		// Prebuild one SDK server for this context so callback wiring remains deterministic.
 		// If the client reconnects and needs another server, the endpoint creates a fresh one.
@@ -4601,12 +4601,12 @@ ${taskSection}`;
 			);
 		}
 		const linearClient = issueTracker.getClient();
-		const prebuiltServer = createCyrusToolsServer(
+		const prebuiltServer = createMileyToolsServer(
 			linearClient,
-			this.createCyrusToolsOptions(parentSessionId),
+			this.createMileyToolsOptions(parentSessionId),
 		);
 
-		this.cyrusToolsMcpContexts.set(contextId, {
+		this.mileyToolsMcpContexts.set(contextId, {
 			contextId,
 			linearToken,
 			linearClient,
@@ -4614,10 +4614,10 @@ ${taskSection}`;
 			prebuiltServer,
 			createdAt: Date.now(),
 		});
-		this.pruneCyrusToolsMcpContexts();
+		this.pruneMileyToolsMcpContexts();
 
-		const cyrusToolsAuthorizationHeader =
-			this.getCyrusToolsMcpAuthorizationHeaderValue();
+		const mileyToolsAuthorizationHeader =
+			this.getMileyToolsMcpAuthorizationHeaderValue();
 
 		// Workspace-level MCP servers — configured once regardless of repo count
 		// https://linear.app/docs/mcp
@@ -4629,14 +4629,14 @@ ${taskSection}`;
 					Authorization: `Bearer ${linearToken}`,
 				},
 			},
-			"cyrus-tools": {
+			"miley-tools": {
 				type: "http",
-				url: this.getCyrusToolsMcpUrl(),
+				url: this.getMileyToolsMcpUrl(),
 				headers: {
-					"x-cyrus-mcp-context-id": contextId,
-					...(cyrusToolsAuthorizationHeader
+					"x-miley-mcp-context-id": contextId,
+					...(mileyToolsAuthorizationHeader
 						? {
-								Authorization: cyrusToolsAuthorizationHeader,
+								Authorization: mileyToolsAuthorizationHeader,
 							}
 						: {}),
 				},
@@ -4690,18 +4690,18 @@ ${taskSection}`;
 		return allPaths;
 	}
 
-	private getCyrusToolsMcpAuthorizationHeaderValue(): string | undefined {
-		const apiKey = process.env.CYRUS_API_KEY?.trim();
+	private getMileyToolsMcpAuthorizationHeaderValue(): string | undefined {
+		const apiKey = process.env.MILEY_API_KEY?.trim();
 		if (!apiKey) {
 			return undefined;
 		}
 		return `Bearer ${apiKey}`;
 	}
 
-	private isCyrusToolsMcpAuthorizationValid(
+	private isMileyToolsMcpAuthorizationValid(
 		rawAuthorizationHeader: unknown,
 	): boolean {
-		const expectedHeader = this.getCyrusToolsMcpAuthorizationHeaderValue();
+		const expectedHeader = this.getMileyToolsMcpAuthorizationHeaderValue();
 		if (!expectedHeader) {
 			return true;
 		}
@@ -4726,7 +4726,7 @@ ${taskSection}`;
 	 */
 	private async buildSessionPrompt(
 		isNewSession: boolean,
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		fullIssue: Issue,
 		repository: RepositoryConfig,
 		promptBody: string,
@@ -5091,7 +5091,7 @@ ${input.userComment}
 	 * @returns Object containing the runner config and runner type to use
 	 */
 	private buildAgentRunnerConfig(
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		repository: RepositoryConfig,
 		sessionId: string,
 		systemPrompt: string | undefined,
@@ -5273,7 +5273,7 @@ ${input.userComment}
 			disallowedTools,
 			allowedDirectories,
 			workspaceName: session.issue?.identifier || session.issueId,
-			cyrusHome: this.cyrusHome,
+			mileyHome: this.mileyHome,
 			mcpConfigPath,
 			mcpConfig,
 			appendSystemPrompt: systemPrompt || "",
@@ -5306,7 +5306,7 @@ ${input.userComment}
 		// Cursor runner-specific wiring for offline/headless harness
 		// We pass these as loose fields to avoid widening core runner types.
 		if (runnerType === "cursor") {
-			const approvalPolicy = (process.env.CYRUS_APPROVAL_POLICY || "never") as
+			const approvalPolicy = (process.env.MILEY_APPROVAL_POLICY || "never") as
 				| "never"
 				| "on-request"
 				| "on-failure"
@@ -5319,8 +5319,8 @@ ${input.userComment}
 			// Keep headless runs non-interactive by default in F1/CLI environments
 			(config as any).askForApproval = approvalPolicy;
 			(config as any).approveMcps = true;
-			// Default to enabled sandbox for tool execution isolation; set CYRUS_SANDBOX=disabled to disable
-			(config as any).sandbox = (process.env.CYRUS_SANDBOX || "enabled") as
+			// Default to enabled sandbox for tool execution isolation; set MILEY_SANDBOX=disabled to disable
+			(config as any).sandbox = (process.env.MILEY_SANDBOX || "enabled") as
 				| "enabled"
 				| "disabled";
 		}
@@ -5390,7 +5390,7 @@ ${input.userComment}
 	 * @returns Merged disallowed tools list
 	 */
 	private mergeSubroutineDisallowedTools(
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		baseDisallowedTools: string[],
 		logContext: string,
 	): string[] {
@@ -5700,7 +5700,7 @@ ${input.userComment}
 	 * This ensures the currentSubroutine is reset to avoid suppression issues
 	 */
 	private async rerouteProcedureForSession(
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		sessionId: string,
 		agentSessionManager: AgentSessionManager,
 		promptBody: string,
@@ -5801,7 +5801,7 @@ ${input.userComment}
 	 * 2. Route procedure if NOT streaming (resets currentSubroutine)
 	 * 3. Add to stream if streaming, OR resume session if not
 	 *
-	 * @param session The Cyrus agent session
+	 * @param session The Miley agent session
 	 * @param repository Repository configuration
 	 * @param sessionId Linear agent activity session ID
 	 * @param agentSessionManager Agent session manager instance
@@ -5813,7 +5813,7 @@ ${input.userComment}
 	 * @returns true if message was added to stream, false if session was resumed
 	 */
 	private async handlePromptWithStreamingCheck(
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		repository: RepositoryConfig,
 		sessionId: string,
 		agentSessionManager: AgentSessionManager,
@@ -5909,7 +5909,7 @@ ${input.userComment}
 	/**
 	 * Resume or create an Agent session with the given prompt
 	 * This is the core logic for handling prompted agent activities
-	 * @param session The Cyrus agent session
+	 * @param session The Miley agent session
 	 * @param repository The repository configuration
 	 * @param sessionId The Linear agent session ID
 	 * @param agentSessionManager The agent session manager
@@ -5918,7 +5918,7 @@ ${input.userComment}
 	 * @param isNewSession Whether this is a new session
 	 */
 	async resumeAgentSession(
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		repository: RepositoryConfig,
 		sessionId: string,
 		agentSessionManager: AgentSessionManager,
@@ -6027,7 +6027,7 @@ ${input.userComment}
 		// Set up attachments directory
 		const workspaceFolderName = basename(session.workspace.path);
 		const attachmentsDir = join(
-			this.cyrusHome,
+			this.mileyHome,
 			workspaceFolderName,
 			"attachments",
 		);

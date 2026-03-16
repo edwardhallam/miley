@@ -46,19 +46,19 @@ describe("GitService", () => {
 					"HEAD abc123def456",
 					"branch refs/heads/main",
 					"",
-					"worktree /home/user/.cyrus/worktrees/ENG-97",
+					"worktree /home/user/.miley/worktrees/ENG-97",
 					"HEAD 789abc012def",
-					"branch refs/heads/cyrustester/eng-97-fix-shader",
+					"branch refs/heads/mileytester/eng-97-fix-shader",
 					"",
 				].join("\n"),
 			);
 
 			const result = gitService.findWorktreeByBranch(
-				"cyrustester/eng-97-fix-shader",
+				"mileytester/eng-97-fix-shader",
 				"/home/user/repo",
 			);
 
-			expect(result).toBe("/home/user/.cyrus/worktrees/ENG-97");
+			expect(result).toBe("/home/user/.miley/worktrees/ENG-97");
 		});
 
 		it("returns null when the branch is not found", () => {
@@ -97,7 +97,7 @@ describe("GitService", () => {
 					"HEAD abc123def456",
 					"bare",
 					"",
-					"worktree /home/user/.cyrus/worktrees/ENG-97",
+					"worktree /home/user/.miley/worktrees/ENG-97",
 					"HEAD 789abc012def",
 					"branch refs/heads/my-feature",
 					"",
@@ -109,7 +109,7 @@ describe("GitService", () => {
 				"/home/user/repo",
 			);
 
-			expect(result).toBe("/home/user/.cyrus/worktrees/ENG-97");
+			expect(result).toBe("/home/user/.miley/worktrees/ENG-97");
 		});
 
 		it("returns null when git command fails", () => {
@@ -151,7 +151,7 @@ describe("GitService", () => {
 		title: "Fix the shader",
 		description: null,
 		url: "",
-		branchName: "cyrustester/eng-97-fix-shader",
+		branchName: "mileytester/eng-97-fix-shader",
 		assigneeId: null,
 		stateId: null,
 		teamId: null,
@@ -179,7 +179,7 @@ describe("GitService", () => {
 		id: "repo-1",
 		name: "test-repo",
 		repositoryPath: "/home/user/repo",
-		workspaceBaseDir: "/home/user/.cyrus/worktrees",
+		workspaceBaseDir: "/home/user/.miley/worktrees",
 		baseBranch: "main",
 		...overrides,
 	});
@@ -203,15 +203,15 @@ describe("GitService", () => {
 					}
 					// Second call: branch-based check via findWorktreeByBranch
 					return [
-						"worktree /home/user/.cyrus/worktrees/LINEAR-SESSION",
+						"worktree /home/user/.miley/worktrees/LINEAR-SESSION",
 						"HEAD 789abc012def",
-						"branch refs/heads/cyrustester/eng-97-fix-shader",
+						"branch refs/heads/mileytester/eng-97-fix-shader",
 						"",
 					].join("\n");
 				}
 				if (
 					cmdStr.includes(
-						'git rev-parse --verify "cyrustester/eng-97-fix-shader"',
+						'git rev-parse --verify "mileytester/eng-97-fix-shader"',
 					)
 				) {
 					// Branch exists
@@ -222,7 +222,7 @@ describe("GitService", () => {
 
 			const result = await gitService.createGitWorktree(issue, [repository]);
 
-			expect(result.path).toBe("/home/user/.cyrus/worktrees/LINEAR-SESSION");
+			expect(result.path).toBe("/home/user/.miley/worktrees/LINEAR-SESSION");
 			expect(result.isGitWorktree).toBe(true);
 			expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining("already checked out in worktree"),
@@ -244,7 +244,7 @@ describe("GitService", () => {
 				}
 				if (
 					cmdStr.includes(
-						'git rev-parse --verify "cyrustester/eng-97-fix-shader"',
+						'git rev-parse --verify "mileytester/eng-97-fix-shader"',
 					)
 				) {
 					// Branch exists
@@ -255,14 +255,14 @@ describe("GitService", () => {
 				}
 				if (cmdStr.includes("git worktree add")) {
 					throw new Error(
-						"fatal: 'cyrustester/eng-97-fix-shader' is already used by worktree at '/home/user/.cyrus/worktrees/LINEAR-SESSION'",
+						"fatal: 'mileytester/eng-97-fix-shader' is already used by worktree at '/home/user/.miley/worktrees/LINEAR-SESSION'",
 					);
 				}
 				return Buffer.from("");
 			});
 
 			mockExistsSync.mockImplementation((path: any) => {
-				if (String(path) === "/home/user/.cyrus/worktrees/LINEAR-SESSION") {
+				if (String(path) === "/home/user/.miley/worktrees/LINEAR-SESSION") {
 					return true;
 				}
 				return false;
@@ -270,7 +270,7 @@ describe("GitService", () => {
 
 			const result = await gitService.createGitWorktree(issue, [repository]);
 
-			expect(result.path).toBe("/home/user/.cyrus/worktrees/LINEAR-SESSION");
+			expect(result.path).toBe("/home/user/.miley/worktrees/LINEAR-SESSION");
 			expect(result.isGitWorktree).toBe(true);
 			expect(mockLogger.info).toHaveBeenCalledWith(
 				expect.stringContaining("Reusing existing worktree"),
@@ -291,7 +291,7 @@ describe("GitService", () => {
 				}
 				if (
 					cmdStr.includes(
-						'git rev-parse --verify "cyrustester/eng-97-fix-shader"',
+						'git rev-parse --verify "mileytester/eng-97-fix-shader"',
 					)
 				) {
 					return Buffer.from("abc123\n");
@@ -307,7 +307,7 @@ describe("GitService", () => {
 
 			const result = await gitService.createGitWorktree(issue, [repository]);
 
-			expect(result.path).toBe("/home/user/.cyrus/worktrees/ENG-97");
+			expect(result.path).toBe("/home/user/.miley/worktrees/ENG-97");
 			expect(result.isGitWorktree).toBe(false);
 		});
 	});
@@ -317,14 +317,14 @@ describe("GitService", () => {
 			const issue = makeIssue();
 
 			const result = await gitService.createGitWorktree(issue, [], {
-				workspaceBaseDir: "/home/user/.cyrus/worktrees",
+				workspaceBaseDir: "/home/user/.miley/worktrees",
 			});
 
-			expect(result.path).toBe("/home/user/.cyrus/worktrees/ENG-97");
+			expect(result.path).toBe("/home/user/.miley/worktrees/ENG-97");
 			expect(result.isGitWorktree).toBe(false);
 			expect(result.repoPaths).toBeUndefined();
 			expect(mockMkdirSync).toHaveBeenCalledWith(
-				"/home/user/.cyrus/worktrees/ENG-97",
+				"/home/user/.miley/worktrees/ENG-97",
 				{ recursive: true },
 			);
 		});
@@ -344,11 +344,11 @@ describe("GitService", () => {
 			mockExistsSync.mockReturnValue(true);
 
 			const result = await gitService.createGitWorktree(issue, [], {
-				workspaceBaseDir: "/home/user/.cyrus/worktrees",
+				workspaceBaseDir: "/home/user/.miley/worktrees",
 				globalSetupScript: "/home/user/setup.sh",
 			});
 
-			expect(result.path).toBe("/home/user/.cyrus/worktrees/ENG-97");
+			expect(result.path).toBe("/home/user/.miley/worktrees/ENG-97");
 			expect(result.isGitWorktree).toBe(false);
 		});
 	});
@@ -358,13 +358,13 @@ describe("GitService", () => {
 			const issue = makeIssue();
 			const repo1 = makeRepository({
 				id: "repo-1",
-				name: "cyrus",
-				repositoryPath: "/home/user/cyrus",
+				name: "miley",
+				repositoryPath: "/home/user/miley",
 			});
 			const repo2 = makeRepository({
 				id: "repo-2",
-				name: "cyrus-hosted",
-				repositoryPath: "/home/user/cyrus-hosted",
+				name: "miley-hosted",
+				repositoryPath: "/home/user/miley-hosted",
 			});
 
 			// Mock git commands for both repos
@@ -394,14 +394,14 @@ describe("GitService", () => {
 
 			const result = await gitService.createGitWorktree(issue, [repo1, repo2]);
 
-			expect(result.path).toBe("/home/user/.cyrus/worktrees/ENG-97");
+			expect(result.path).toBe("/home/user/.miley/worktrees/ENG-97");
 			expect(result.isGitWorktree).toBe(true);
 			expect(result.repoPaths).toBeDefined();
 			expect(result.repoPaths!["repo-1"]).toBe(
-				"/home/user/.cyrus/worktrees/ENG-97/cyrus",
+				"/home/user/.miley/worktrees/ENG-97/miley",
 			);
 			expect(result.repoPaths!["repo-2"]).toBe(
-				"/home/user/.cyrus/worktrees/ENG-97/cyrus-hosted",
+				"/home/user/.miley/worktrees/ENG-97/miley-hosted",
 			);
 		});
 
@@ -409,14 +409,14 @@ describe("GitService", () => {
 			const issue = makeIssue();
 			const repo1 = makeRepository({
 				id: "repo-1",
-				name: "cyrus",
-				repositoryPath: "/home/user/cyrus",
-				workspaceBaseDir: "/home/user/.cyrus/worktrees",
+				name: "miley",
+				repositoryPath: "/home/user/miley",
+				workspaceBaseDir: "/home/user/.miley/worktrees",
 			});
 			const repo2 = makeRepository({
 				id: "repo-2",
-				name: "cyrus-hosted",
-				repositoryPath: "/home/user/cyrus-hosted",
+				name: "miley-hosted",
+				repositoryPath: "/home/user/miley-hosted",
 				workspaceBaseDir: "/other/base",
 			});
 
@@ -446,19 +446,19 @@ describe("GitService", () => {
 			const result = await gitService.createGitWorktree(issue, [repo1, repo2]);
 
 			// Parent path uses first repo's workspaceBaseDir
-			expect(result.path).toBe("/home/user/.cyrus/worktrees/ENG-97");
+			expect(result.path).toBe("/home/user/.miley/worktrees/ENG-97");
 		});
 
 		it("falls back to plain directory for individual repo failures in N-repo mode", async () => {
 			const issue = makeIssue();
 			const repo1 = makeRepository({
 				id: "repo-1",
-				name: "cyrus",
-				repositoryPath: "/home/user/cyrus",
+				name: "miley",
+				repositoryPath: "/home/user/miley",
 			});
 			const repo2 = makeRepository({
 				id: "repo-2",
-				name: "cyrus-hosted",
+				name: "miley-hosted",
 				repositoryPath: "/home/user/does-not-exist",
 			});
 
@@ -494,11 +494,11 @@ describe("GitService", () => {
 			expect(result.repoPaths).toBeDefined();
 			// First repo should have succeeded
 			expect(result.repoPaths!["repo-1"]).toBe(
-				"/home/user/.cyrus/worktrees/ENG-97/cyrus",
+				"/home/user/.miley/worktrees/ENG-97/miley",
 			);
 			// Second repo falls back to plain directory
 			expect(result.repoPaths!["repo-2"]).toBe(
-				"/home/user/.cyrus/worktrees/ENG-97/cyrus-hosted",
+				"/home/user/.miley/worktrees/ENG-97/miley-hosted",
 			);
 		});
 	});
@@ -519,7 +519,7 @@ describe("GitService", () => {
 				parent: Promise.resolve({
 					identifier: "ENG-96",
 					title: "Parent issue",
-					branchName: "cyrustester/eng-96-parent-issue",
+					branchName: "mileytester/eng-96-parent-issue",
 				}),
 			});
 			const repository = makeRepository();
@@ -529,7 +529,7 @@ describe("GitService", () => {
 				const cmdStr = String(cmd);
 				if (
 					cmdStr.includes(
-						'git rev-parse --verify "cyrustester/eng-96-parent-issue"',
+						'git rev-parse --verify "mileytester/eng-96-parent-issue"',
 					)
 				) {
 					return Buffer.from("abc123\n");
@@ -539,7 +539,7 @@ describe("GitService", () => {
 
 			const result = await gitService.determineBaseBranch(issue, repository);
 
-			expect(result.branch).toBe("cyrustester/eng-96-parent-issue");
+			expect(result.branch).toBe("mileytester/eng-96-parent-issue");
 			expect(result.source).toBe("parent-issue");
 			expect(result.detail).toContain("ENG-96");
 		});
@@ -548,14 +548,14 @@ describe("GitService", () => {
 			const blockingIssue = {
 				identifier: "ENG-95",
 				title: "Blocking issue",
-				branchName: "cyrustester/eng-95-blocking",
+				branchName: "mileytester/eng-95-blocking",
 			};
 
 			const issue = makeIssue({
 				parent: Promise.resolve({
 					identifier: "ENG-96",
 					title: "Parent issue",
-					branchName: "cyrustester/eng-96-parent",
+					branchName: "mileytester/eng-96-parent",
 				}),
 				labels: () =>
 					Promise.resolve({
@@ -578,7 +578,7 @@ describe("GitService", () => {
 				const cmdStr = String(cmd);
 				if (
 					cmdStr.includes(
-						'git rev-parse --verify "cyrustester/eng-95-blocking"',
+						'git rev-parse --verify "mileytester/eng-95-blocking"',
 					)
 				) {
 					return Buffer.from("abc123\n");
@@ -588,7 +588,7 @@ describe("GitService", () => {
 
 			const result = await gitService.determineBaseBranch(issue, repository);
 
-			expect(result.branch).toBe("cyrustester/eng-95-blocking");
+			expect(result.branch).toBe("mileytester/eng-95-blocking");
 			expect(result.source).toBe("graphite-blocked-by");
 			expect(result.detail).toContain("ENG-95");
 			expect(mockLogger.info).toHaveBeenCalledWith(
@@ -600,14 +600,14 @@ describe("GitService", () => {
 			const blockingIssue = {
 				identifier: "ENG-95",
 				title: "Blocking issue",
-				branchName: "cyrustester/eng-95-blocking",
+				branchName: "mileytester/eng-95-blocking",
 			};
 
 			const issue = makeIssue({
 				parent: Promise.resolve({
 					identifier: "ENG-96",
 					title: "Parent issue",
-					branchName: "cyrustester/eng-96-parent",
+					branchName: "mileytester/eng-96-parent",
 				}),
 				labels: () =>
 					Promise.resolve({
@@ -629,7 +629,7 @@ describe("GitService", () => {
 			mockExecSync.mockImplementation((cmd: any) => {
 				const cmdStr = String(cmd);
 				if (
-					cmdStr.includes('git rev-parse --verify "cyrustester/eng-96-parent"')
+					cmdStr.includes('git rev-parse --verify "mileytester/eng-96-parent"')
 				) {
 					return Buffer.from("abc123\n");
 				}
@@ -638,7 +638,7 @@ describe("GitService", () => {
 
 			const result = await gitService.determineBaseBranch(issue, repository);
 
-			expect(result.branch).toBe("cyrustester/eng-96-parent");
+			expect(result.branch).toBe("mileytester/eng-96-parent");
 			expect(result.source).toBe("parent-issue");
 			expect(result.detail).toContain("ENG-96");
 		});

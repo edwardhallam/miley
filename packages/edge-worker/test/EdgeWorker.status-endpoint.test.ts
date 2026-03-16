@@ -12,10 +12,10 @@ vi.mock("fs/promises", () => ({
 }));
 
 // Mock dependencies
-vi.mock("cyrus-claude-runner");
-vi.mock("cyrus-codex-runner");
-vi.mock("cyrus-gemini-runner");
-vi.mock("cyrus-linear-event-transport");
+vi.mock("miley-claude-runner");
+vi.mock("miley-codex-runner");
+vi.mock("miley-gemini-runner");
+vi.mock("miley-linear-event-transport");
 vi.mock("@linear/sdk");
 vi.mock("../src/SharedApplicationServer.js", () => ({
 	SharedApplicationServer: vi.fn().mockImplementation(() => ({
@@ -33,7 +33,7 @@ vi.mock("../src/AgentSessionManager.js", () => ({
 	AgentSessionManager: vi.fn().mockImplementation(() => ({
 		getAllAgentRunners: vi.fn().mockReturnValue([]),
 		getAllSessions: vi.fn().mockReturnValue([]),
-		createCyrusAgentSession: vi.fn(),
+		createMileyAgentSession: vi.fn(),
 		getSession: vi.fn(),
 		getActiveSessionsByIssueId: vi.fn().mockReturnValue([]),
 		setActivitySink: vi.fn(),
@@ -41,7 +41,7 @@ vi.mock("../src/AgentSessionManager.js", () => ({
 		emit: vi.fn(), // EventEmitter method
 	})),
 }));
-vi.mock("cyrus-core", async (importOriginal) => {
+vi.mock("miley-core", async (importOriginal) => {
 	const actual = (await importOriginal()) as any;
 	return {
 		...actual,
@@ -93,7 +93,7 @@ describe("EdgeWorker - Status Endpoint", () => {
 
 		mockConfig = {
 			platform: "linear",
-			cyrusHome: "/test/.cyrus",
+			mileyHome: "/test/.miley",
 			repositories: [mockRepository],
 			linearWorkspaces: {
 				"test-workspace": { linearToken: "test-token" },
@@ -244,7 +244,7 @@ describe("EdgeWorker - Status Endpoint", () => {
 			edgeWorker = new EdgeWorker(mockConfig);
 
 			// Mock isIssueUnassignedWebhook to return true and make the handler throw
-			const { isIssueUnassignedWebhook } = await import("cyrus-core");
+			const { isIssueUnassignedWebhook } = await import("miley-core");
 			vi.mocked(isIssueUnassignedWebhook).mockReturnValue(true);
 
 			// Mock the handler to throw

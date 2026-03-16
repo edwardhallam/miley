@@ -1,4 +1,4 @@
-import type { ISimpleAgentQueryOptions, SDKMessage } from "cyrus-core";
+import type { ISimpleAgentQueryOptions, SDKMessage } from "miley-core";
 import { ClaudeRunner } from "./ClaudeRunner.js";
 import { SimpleAgentRunner } from "./SimpleAgentRunner.js";
 import { NoResponseError, SessionError } from "./simple-agent-errors.js";
@@ -21,7 +21,7 @@ export class SimpleClaudeRunner<T extends string> extends SimpleAgentRunner<T> {
 
 		const runner = new ClaudeRunner({
 			workingDirectory: this.config.workingDirectory,
-			cyrusHome: this.config.cyrusHome,
+			mileyHome: this.config.mileyHome,
 			model: this.config.model,
 			fallbackModel: this.config.fallbackModel,
 			maxTurns: this.config.maxTurns,

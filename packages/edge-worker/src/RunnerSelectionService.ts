@@ -3,14 +3,14 @@ import {
 	getCoordinatorTools,
 	getReadOnlyTools,
 	getSafeTools,
-} from "cyrus-claude-runner";
+} from "miley-claude-runner";
 import type {
-	CyrusAgentSession,
 	EdgeWorkerConfig,
 	ILogger,
+	MileyAgentSession,
 	RepositoryConfig,
 	RunnerType,
-} from "cyrus-core";
+} from "miley-core";
 
 import type { ProcedureAnalyzer } from "./procedures/index.js";
 
@@ -408,7 +408,7 @@ export class RunnerSelectionService {
 	 */
 	private getWorkspaceMcpTools(): string[] {
 		// See: https://docs.anthropic.com/en/docs/claude-code/iam#tool-specific-permission-rules
-		const tools = ["mcp__linear", "mcp__cyrus-tools"];
+		const tools = ["mcp__linear", "mcp__miley-tools"];
 		if (process.env.SLACK_BOT_TOKEN?.trim()) {
 			tools.push("mcp__slack");
 		}
@@ -568,7 +568,7 @@ export class RunnerSelectionService {
 	 * @returns Merged disallowed tools list
 	 */
 	public mergeSubroutineDisallowedTools(
-		session: CyrusAgentSession,
+		session: MileyAgentSession,
 		baseDisallowedTools: string[],
 		logContext: string,
 		procedureAnalyzer: ProcedureAnalyzer,

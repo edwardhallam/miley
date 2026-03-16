@@ -81,7 +81,7 @@ export function stripMention(text: string, _h?: string): string {
 	return text;
 }
 
-// Fixture stub for tests importing from cyrus-github-event-transport/test/fixtures
+// Fixture stub for tests importing from miley-github-event-transport/test/fixtures
 export const issueCommentPayload = {
 	action: "created",
 	issue: {
@@ -92,7 +92,7 @@ export const issueCommentPayload = {
 	},
 	comment: {
 		id: 1,
-		body: "@cyrusagent test",
+		body: "@mileyagent test",
 		html_url: "",
 		user: { login: "testuser" },
 	},

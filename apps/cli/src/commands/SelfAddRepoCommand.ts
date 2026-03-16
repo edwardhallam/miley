@@ -9,7 +9,7 @@ import {
 	DEFAULT_WORKTREES_DIR,
 	type EdgeConfig,
 	migrateEdgeConfig,
-} from "cyrus-core";
+} from "miley-core";
 import { BaseCommand } from "./ICommand.js";
 
 /**
@@ -26,11 +26,11 @@ interface WorkspaceCredentials {
  * Self-add-repo command - clones a repo and adds it to config.json
  *
  * Usage:
- *   cyrus self-add-repo                      # prompts for everything
- *   cyrus self-add-repo <url>                # prompts for workspace if multiple
- *   cyrus self-add-repo <url> <workspace>    # no prompts
- *   cyrus self-add-repo <url> -l <labels>    # custom routing labels (comma-separated)
- *   cyrus self-add-repo <url> <workspace> -l <labels>
+ *   miley self-add-repo                      # prompts for everything
+ *   miley self-add-repo <url>                # prompts for workspace if multiple
+ *   miley self-add-repo <url> <workspace>    # no prompts
+ *   miley self-add-repo <url> -l <labels>    # custom routing labels (comma-separated)
+ *   miley self-add-repo <url> <workspace> -l <labels>
  *
  * Routing labels are used to route Linear issues to this repository.
  * If not specified, defaults to the repository name.
@@ -83,7 +83,7 @@ export class SelfAddRepoCommand extends BaseCommand {
 
 		try {
 			// Load config
-			const configPath = resolve(this.app.cyrusHome, DEFAULT_CONFIG_FILENAME);
+			const configPath = resolve(this.app.mileyHome, DEFAULT_CONFIG_FILENAME);
 			let config: EdgeConfig;
 			try {
 				config = migrateEdgeConfig(
@@ -146,7 +146,7 @@ export class SelfAddRepoCommand extends BaseCommand {
 
 			if (workspaces.size === 0) {
 				this.logError(
-					"No Linear credentials found. Run 'cyrus self-auth' first.",
+					"No Linear credentials found. Run 'miley self-auth' first.",
 				);
 				process.exit(1);
 			}
@@ -185,7 +185,7 @@ export class SelfAddRepoCommand extends BaseCommand {
 			}
 
 			// Clone the repo
-			const repositoryPath = resolve(this.app.cyrusHome, "repos", repoName);
+			const repositoryPath = resolve(this.app.mileyHome, "repos", repoName);
 
 			if (existsSync(repositoryPath)) {
 				console.log(`Repository already exists at ${repositoryPath}`);
@@ -208,7 +208,7 @@ export class SelfAddRepoCommand extends BaseCommand {
 				name: repoName,
 				repositoryPath,
 				baseBranch: DEFAULT_BASE_BRANCH,
-				workspaceBaseDir: resolve(this.app.cyrusHome, DEFAULT_WORKTREES_DIR),
+				workspaceBaseDir: resolve(this.app.mileyHome, DEFAULT_WORKTREES_DIR),
 				linearWorkspaceId: selectedWorkspace.id,
 				isActive: true,
 				routingLabels,

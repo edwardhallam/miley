@@ -6,10 +6,10 @@
 		"moduleResolution": "NodeNext",
 		"baseUrl": "../../",
 		"paths": {
-			"cyrus-core": ["packages/core/src"],
-			"cyrus-claude-runner": ["packages/claude-runner/src"],
-			"cyrus-config-updater": ["packages/config-updater/src"],
-			"cyrus-edge-worker": [
+			"miley-core": ["packages/core/src"],
+			"miley-claude-runner": ["packages/claude-runner/src"],
+			"miley-config-updater": ["packages/config-updater/src"],
+			"miley-edge-worker": [
 				"packages/edge-worker/dist/edge-worker/src/index.d.ts"
 			]
 		}

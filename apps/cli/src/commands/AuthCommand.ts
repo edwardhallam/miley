@@ -2,11 +2,11 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { BaseCommand } from "./ICommand.js";
 
-const getCyrusAppUrl = () =>
-	process.env.CYRUS_APP_URL || "https://app.atcyrus.com";
+const getMileyAppUrl = () =>
+	process.env.MILEY_APP_URL || "https://app.atmiley.com";
 
 /**
- * Auth command - authenticate with Cyrus Pro plan using auth key
+ * Auth command - authenticate with Miley Pro plan using auth key
  */
 export class AuthCommand extends BaseCommand {
 	async execute(args: string[]): Promise<void> {
@@ -19,20 +19,20 @@ export class AuthCommand extends BaseCommand {
 			authKey.trim().length === 0
 		) {
 			this.logError("Error: Auth key is required");
-			console.log("\nUsage: cyrus auth <auth-key>");
+			console.log("\nUsage: miley auth <auth-key>");
 			console.log(
-				`\nGet your auth key from: ${getCyrusAppUrl()}/onboarding/auth-cyrus`,
+				`\nGet your auth key from: ${getMileyAppUrl()}/onboarding/auth-miley`,
 			);
 			process.exit(1);
 		}
 
-		console.log("\n🔑 Authenticating with Cyrus...");
+		console.log("\n🔑 Authenticating with Miley...");
 		this.logDivider();
 
 		try {
 			// Call the config API to get credentials
 			console.log("Validating auth key...");
-			const configUrl = `${getCyrusAppUrl()}/api/config?auth_key=${encodeURIComponent(authKey)}`;
+			const configUrl = `${getMileyAppUrl()}/api/config?auth_key=${encodeURIComponent(authKey)}`;
 			const response = await fetch(configUrl);
 			if (!response.ok) {
 				const errorText = await response.text();
@@ -55,35 +55,35 @@ export class AuthCommand extends BaseCommand {
 				console.error(configResponse.error || "Invalid response from server");
 				console.log("\nPlease verify your auth key is correct.");
 				console.log(
-					`Get your auth key from: ${getCyrusAppUrl()}/onboarding/auth-cyrus`,
+					`Get your auth key from: ${getMileyAppUrl()}/onboarding/auth-miley`,
 				);
 				process.exit(1);
 			}
 
 			this.logSuccess("Authentication successful!");
 
-			// Ensure CYRUS_HOME directory exists
-			if (!existsSync(this.app.cyrusHome)) {
-				mkdirSync(this.app.cyrusHome, { recursive: true });
+			// Ensure MILEY_HOME directory exists
+			if (!existsSync(this.app.mileyHome)) {
+				mkdirSync(this.app.mileyHome, { recursive: true });
 			}
 
-			// Store tokens in ~/.cyrus/.env file
-			const envPath = resolve(this.app.cyrusHome, ".env");
-			const envContent = `# Cyrus Authentication Credentials
+			// Store tokens in ~/.miley/.env file
+			const envPath = resolve(this.app.mileyHome, ".env");
+			const envContent = `# Miley Authentication Credentials
 # Generated on ${new Date().toISOString()}
 CLOUDFLARE_TOKEN=${configResponse.config!.cloudflareToken}
-CYRUS_API_KEY=${configResponse.config!.apiKey}
-CYRUS_SETUP_PENDING=true
+MILEY_API_KEY=${configResponse.config!.apiKey}
+MILEY_SETUP_PENDING=true
 `;
 
 			writeFileSync(envPath, envContent, "utf-8");
 			this.logSuccess(`Credentials saved to ${envPath}`);
 
-			// Reload environment variables to pick up CYRUS_SETUP_PENDING
+			// Reload environment variables to pick up MILEY_SETUP_PENDING
 			const dotenv = await import("dotenv");
 			dotenv.config({ path: envPath, override: true });
 
-			console.log("\n✨ Setup complete! Starting Cyrus...");
+			console.log("\n✨ Setup complete! Starting Miley...");
 			this.logDivider();
 			console.log();
 

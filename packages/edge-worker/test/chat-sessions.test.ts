@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ChatPlatformAdapter } from "../src/ChatSessionHandler.js";
 import { ChatSessionHandler } from "../src/ChatSessionHandler.js";
 import { SlackChatAdapter } from "../src/SlackChatAdapter.js";
-import { TEST_CYRUS_CHAT } from "./test-dirs.js";
+import { TEST_MILEY_CHAT } from "./test-dirs.js";
 
 interface TestEvent {
 	eventId: string;
@@ -54,7 +54,7 @@ describe("ChatSessionHandler chat session permissions", () => {
 			eventId: "test-event",
 			threadKey: "test-thread",
 		};
-		const cyrusHome = TEST_CYRUS_CHAT;
+		const mileyHome = TEST_MILEY_CHAT;
 		const chatRepositoryPaths = ["/repo/chat-one", "/repo/chat-two"];
 		let capturedConfig: any;
 
@@ -77,7 +77,7 @@ describe("ChatSessionHandler chat session permissions", () => {
 		const onClaudeError = vi.fn();
 
 		const handler = new ChatSessionHandler(adapter, {
-			cyrusHome,
+			mileyHome,
 			chatRepositoryPaths,
 			createRunner: createRunner,
 			onWebhookStart,
@@ -94,7 +94,7 @@ describe("ChatSessionHandler chat session permissions", () => {
 		expect(capturedConfig.allowedTools).toContain("Bash(git -C * pull)");
 		expect(capturedConfig.allowedTools).not.toContain("Edit(**)");
 
-		const expectedWorkspace = join(cyrusHome, "slack-workspaces", "thread-key");
+		const expectedWorkspace = join(mileyHome, "slack-workspaces", "thread-key");
 		expect(capturedConfig.allowedDirectories).toContain(expectedWorkspace);
 		for (const path of chatRepositoryPaths) {
 			expect(capturedConfig.allowedDirectories).toContain(path);
@@ -110,7 +110,7 @@ describe("SlackChatAdapter system prompt", () => {
 			payload: {
 				user: "U1",
 				channel: "C1",
-				text: "<@cyrus> inspect code",
+				text: "<@miley> inspect code",
 				ts: "1700000000.000100",
 				event_ts: "1700000000.000100",
 				type: "app_mention",
@@ -134,7 +134,7 @@ describe("SlackChatAdapter system prompt", () => {
 			payload: {
 				user: "U1",
 				channel: "C1",
-				text: "<@cyrus> assign this work",
+				text: "<@miley> assign this work",
 				ts: "1700000000.000100",
 				event_ts: "1700000000.000100",
 				type: "app_mention",

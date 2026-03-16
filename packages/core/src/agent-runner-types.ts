@@ -383,7 +383,7 @@ export interface IAgentRunner {
  *   mcpConfig: {
  *     'linear': { command: 'npx', args: ['-y', '@linear/mcp-server'] }
  *   },
- *   cyrusHome: '/home/user/.cyrus'
+ *   mileyHome: '/home/user/.miley'
  * };
  * ```
  */
@@ -414,8 +414,8 @@ export interface AgentRunnerConfig {
 	maxTurns?: number;
 	/** Built-in tools available in model context (empty array disables all tools) */
 	tools?: string[];
-	/** Cyrus home directory (required) */
-	cyrusHome: string;
+	/** Miley home directory (required) */
+	mileyHome: string;
 	/** Prompt template version information */
 	promptVersions?: {
 		userPromptVersion?: string;
