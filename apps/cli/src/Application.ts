@@ -1,11 +1,7 @@
 import { existsSync, mkdirSync, watch } from "node:fs";
 import { dirname, join } from "node:path";
 import dotenv from "dotenv";
-import {
-	DEFAULT_PROXY_URL,
-	DEFAULT_WORKTREES_DIR,
-	type RepositoryConfig,
-} from "miley-core";
+import { DEFAULT_PROXY_URL, type RepositoryConfig } from "miley-core";
 import { GitService, SharedApplicationServer } from "miley-edge-worker";
 import { DEFAULT_SERVER_PORT, parsePort } from "./config/constants.js";
 import { ConfigService } from "./services/ConfigService.js";
@@ -101,10 +97,11 @@ export class Application {
 
 	/**
 	 * Ensure required Miley directories exist
-	 * Creates: ~/.miley/repos, ~/.miley/worktrees, ~/.miley/mcp-configs
+	 * Creates: ~/.miley/mcp-configs
+	 * Note: worktrees are now project-local ({repo}/.worktrees/), created by GitService on demand
 	 */
 	private ensureRequiredDirectories(): void {
-		const requiredDirs = ["repos", DEFAULT_WORKTREES_DIR, "mcp-configs"];
+		const requiredDirs = ["mcp-configs"];
 
 		for (const dir of requiredDirs) {
 			const dirPath = join(this.mileyHome, dir);

@@ -46,6 +46,7 @@ function mileyConfigToEdgeConfig(miley: MileyConfig): EdgeConfig {
 			projectKeys: repo.projectKeys,
 			// Compute worktreeBaseDir from repositoryPath (the key schema change)
 			workspaceBaseDir: computeWorktreeBaseDir(repo.repositoryPath),
+			preferLocalBranch: repo.preferLocalBranch,
 			isActive: repo.isActive,
 			allowedTools: repo.allowedTools,
 			disallowedTools: repo.disallowedTools,

@@ -166,6 +166,9 @@ export const RepositoryConfigSchema = z.object({
 	// Workspace configuration
 	workspaceBaseDir: z.string(),
 
+	/** Whether to prefer local branch over remote when creating worktrees. Defaults to false. */
+	preferLocalBranch: z.boolean().optional(),
+
 	// Optional settings
 	isActive: z.boolean().optional(),
 	promptTemplatePath: z.string().optional(),

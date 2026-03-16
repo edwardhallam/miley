@@ -4,9 +4,9 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as readline from "node:readline";
 import {
+	computeWorktreeBaseDir,
 	DEFAULT_BASE_BRANCH,
 	DEFAULT_CONFIG_FILENAME,
-	DEFAULT_WORKTREES_DIR,
 	type EdgeConfig,
 	migrateEdgeConfig,
 } from "miley-core";
@@ -208,7 +208,7 @@ export class SelfAddRepoCommand extends BaseCommand {
 				name: repoName,
 				repositoryPath,
 				baseBranch: DEFAULT_BASE_BRANCH,
-				workspaceBaseDir: resolve(this.app.mileyHome, DEFAULT_WORKTREES_DIR),
+				workspaceBaseDir: computeWorktreeBaseDir(repositoryPath),
 				linearWorkspaceId: selectedWorkspace.id,
 				isActive: true,
 				routingLabels,

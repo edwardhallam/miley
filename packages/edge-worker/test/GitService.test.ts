@@ -782,4 +782,303 @@ describe("GitService", () => {
 			expect(result).toHaveLength(0);
 		});
 	});
+
+	describe("preferLocalBranch", () => {
+		it("branches from local main when preferLocalBranch is true (skips git fetch)", async () => {
+			const issue = makeIssue();
+			const repository = makeRepository({ preferLocalBranch: true });
+
+			const executedCommands: string[] = [];
+			mockExecSync.mockImplementation((cmd: any) => {
+				const cmdStr = String(cmd);
+				executedCommands.push(cmdStr);
+				if (cmdStr === "git rev-parse --git-dir") {
+					return Buffer.from(".git\n");
+				}
+				if (cmdStr === "git worktree list --porcelain") {
+					return "";
+				}
+				if (
+					cmdStr.includes(
+						'git rev-parse --verify "mileytester/eng-97-fix-shader"',
+					)
+				) {
+					// Branch doesn't exist yet
+					throw new Error("not found");
+				}
+				if (cmdStr.includes('git rev-parse --verify "main"')) {
+					// Local main exists
+					return Buffer.from("abc123\n");
+				}
+				if (cmdStr.includes("git worktree add")) {
+					return Buffer.from("");
+				}
+				return Buffer.from("");
+			});
+
+			const result = await gitService.createGitWorktree(issue, [repository]);
+
+			expect(result.isGitWorktree).toBe(true);
+			// Should NOT have called git fetch origin
+			expect(executedCommands).not.toContain("git fetch origin");
+			// Should NOT have called git ls-remote
+			expect(
+				executedCommands.some((cmd) => cmd.includes("git ls-remote")),
+			).toBe(false);
+			// Should have created worktree from local branch (no origin/ prefix, no --track)
+			const worktreeAddCmd = executedCommands.find((cmd) =>
+				cmd.includes("git worktree add"),
+			);
+			expect(worktreeAddCmd).toBeDefined();
+			expect(worktreeAddCmd).toContain('"main"');
+			expect(worktreeAddCmd).not.toContain("origin/");
+			expect(worktreeAddCmd).not.toContain("--track");
+		});
+
+		it("falls back to remote when local branch missing and preferLocalBranch is true", async () => {
+			const issue = makeIssue();
+			const repository = makeRepository({ preferLocalBranch: true });
+
+			const executedCommands: string[] = [];
+			mockExecSync.mockImplementation((cmd: any) => {
+				const cmdStr = String(cmd);
+				executedCommands.push(cmdStr);
+				if (cmdStr === "git rev-parse --git-dir") {
+					return Buffer.from(".git\n");
+				}
+				if (cmdStr === "git worktree list --porcelain") {
+					return "";
+				}
+				if (
+					cmdStr.includes(
+						'git rev-parse --verify "mileytester/eng-97-fix-shader"',
+					)
+				) {
+					throw new Error("not found");
+				}
+				if (cmdStr.includes('git rev-parse --verify "main"')) {
+					// Local main does NOT exist
+					throw new Error("not found");
+				}
+				if (cmdStr.includes("git fetch origin")) {
+					return Buffer.from("");
+				}
+				if (cmdStr.includes("git ls-remote")) {
+					return Buffer.from("abc123 refs/heads/main\n");
+				}
+				if (cmdStr.includes("git worktree add")) {
+					return Buffer.from("");
+				}
+				return Buffer.from("");
+			});
+
+			const result = await gitService.createGitWorktree(issue, [repository]);
+
+			expect(result.isGitWorktree).toBe(true);
+			// SHOULD have called git fetch origin (fallback)
+			expect(executedCommands).toContain("git fetch origin");
+			// Should have created worktree from remote branch with tracking
+			const worktreeAddCmd = executedCommands.find((cmd) =>
+				cmd.includes("git worktree add"),
+			);
+			expect(worktreeAddCmd).toBeDefined();
+			expect(worktreeAddCmd).toContain("origin/main");
+			expect(worktreeAddCmd).toContain("--track");
+		});
+
+		it("always fetches from remote when preferLocalBranch is false (default behavior)", async () => {
+			const issue = makeIssue();
+			const repository = makeRepository(); // preferLocalBranch not set (defaults to undefined/false)
+
+			const executedCommands: string[] = [];
+			mockExecSync.mockImplementation((cmd: any) => {
+				const cmdStr = String(cmd);
+				executedCommands.push(cmdStr);
+				if (cmdStr === "git rev-parse --git-dir") {
+					return Buffer.from(".git\n");
+				}
+				if (cmdStr === "git worktree list --porcelain") {
+					return "";
+				}
+				if (
+					cmdStr.includes(
+						'git rev-parse --verify "mileytester/eng-97-fix-shader"',
+					)
+				) {
+					throw new Error("not found");
+				}
+				if (cmdStr.includes("git fetch origin")) {
+					return Buffer.from("");
+				}
+				if (cmdStr.includes("git ls-remote")) {
+					return Buffer.from("abc123 refs/heads/main\n");
+				}
+				if (cmdStr.includes("git worktree add")) {
+					return Buffer.from("");
+				}
+				return Buffer.from("");
+			});
+
+			const result = await gitService.createGitWorktree(issue, [repository]);
+
+			expect(result.isGitWorktree).toBe(true);
+			// SHOULD have called git fetch origin (default behavior)
+			expect(executedCommands).toContain("git fetch origin");
+			// Should have created worktree from remote branch
+			const worktreeAddCmd = executedCommands.find((cmd) =>
+				cmd.includes("git worktree add"),
+			);
+			expect(worktreeAddCmd).toBeDefined();
+			expect(worktreeAddCmd).toContain("origin/main");
+		});
+
+		it("does not check local branch when preferLocalBranch is true but branch already exists", async () => {
+			const issue = makeIssue();
+			const repository = makeRepository({ preferLocalBranch: true });
+
+			const executedCommands: string[] = [];
+			mockExecSync.mockImplementation((cmd: any) => {
+				const cmdStr = String(cmd);
+				executedCommands.push(cmdStr);
+				if (cmdStr === "git rev-parse --git-dir") {
+					return Buffer.from(".git\n");
+				}
+				if (cmdStr === "git worktree list --porcelain") {
+					return "";
+				}
+				if (
+					cmdStr.includes(
+						'git rev-parse --verify "mileytester/eng-97-fix-shader"',
+					)
+				) {
+					// Branch already exists
+					return Buffer.from("abc123\n");
+				}
+				if (cmdStr.includes("git fetch origin")) {
+					return Buffer.from("");
+				}
+				if (cmdStr.includes("git worktree add")) {
+					return Buffer.from("");
+				}
+				return Buffer.from("");
+			});
+
+			const result = await gitService.createGitWorktree(issue, [repository]);
+
+			expect(result.isGitWorktree).toBe(true);
+			// When branch already exists, preferLocalBranch logic is skipped (createBranch = false)
+			// so fetch still runs (existing branch, just add worktree)
+			const worktreeAddCmd = executedCommands.find((cmd) =>
+				cmd.includes("git worktree add"),
+			);
+			expect(worktreeAddCmd).toBeDefined();
+			// Should just check out the existing branch (no -b flag)
+			expect(worktreeAddCmd).toContain('"mileytester/eng-97-fix-shader"');
+		});
+	});
+
+	describe("project-local worktrees", () => {
+		it("creates worktree at repo/.worktrees/ISSUE-ID/ (path computation)", async () => {
+			const issue = makeIssue();
+			const repository = makeRepository({
+				repositoryPath: "/home/user/my-project",
+				workspaceBaseDir: "/home/user/my-project/.worktrees",
+			});
+
+			const executedCommands: string[] = [];
+			mockExecSync.mockImplementation((cmd: any) => {
+				const cmdStr = String(cmd);
+				executedCommands.push(cmdStr);
+				if (cmdStr === "git rev-parse --git-dir") {
+					return Buffer.from(".git\n");
+				}
+				if (cmdStr === "git check-ignore -q .worktrees") {
+					// .worktrees IS ignored
+					return Buffer.from("");
+				}
+				if (cmdStr === "git worktree list --porcelain") {
+					return "";
+				}
+				if (cmdStr.includes("git rev-parse --verify")) {
+					throw new Error("not found");
+				}
+				if (cmdStr.includes("git fetch origin")) {
+					return Buffer.from("");
+				}
+				if (cmdStr.includes("git ls-remote")) {
+					return Buffer.from("abc123 refs/heads/main\n");
+				}
+				if (cmdStr.includes("git worktree add")) {
+					return Buffer.from("");
+				}
+				return Buffer.from("");
+			});
+
+			const result = await gitService.createGitWorktree(issue, [repository]);
+
+			expect(result.path).toBe("/home/user/my-project/.worktrees/ENG-97");
+			expect(result.isGitWorktree).toBe(true);
+			// Should have created the .worktrees directory
+			expect(mockMkdirSync).toHaveBeenCalledWith(
+				"/home/user/my-project/.worktrees",
+				{ recursive: true },
+			);
+		});
+
+		it("fails if .worktrees is not in .gitignore (safety check)", async () => {
+			const issue = makeIssue();
+			const repository = makeRepository({
+				repositoryPath: "/home/user/my-project",
+				workspaceBaseDir: "/home/user/my-project/.worktrees",
+			});
+
+			mockExecSync.mockImplementation((cmd: any) => {
+				const cmdStr = String(cmd);
+				if (cmdStr === "git rev-parse --git-dir") {
+					return Buffer.from(".git\n");
+				}
+				if (cmdStr === "git check-ignore -q .worktrees") {
+					// .worktrees is NOT ignored -- git check-ignore exits non-zero
+					throw new Error("exit code 1");
+				}
+				return Buffer.from("");
+			});
+
+			// Should fall back to non-git directory because safety check throws inside the try block
+			const result = await gitService.createGitWorktree(issue, [repository]);
+			expect(result.isGitWorktree).toBe(false);
+			expect(mockLogger.error).toHaveBeenCalledWith(
+				expect.stringContaining("Failed to create git worktree:"),
+				expect.stringContaining(".worktrees is not in .gitignore"),
+			);
+		});
+
+		it("ensureWorktreesIgnored succeeds when .worktrees is ignored", () => {
+			mockExecSync.mockImplementation((cmd: any) => {
+				const cmdStr = String(cmd);
+				if (cmdStr === "git check-ignore -q .worktrees") {
+					return Buffer.from("");
+				}
+				return Buffer.from("");
+			});
+
+			expect(() =>
+				gitService.ensureWorktreesIgnored("/home/user/my-project"),
+			).not.toThrow();
+		});
+
+		it("ensureWorktreesIgnored throws when .worktrees is not ignored", () => {
+			mockExecSync.mockImplementation((cmd: any) => {
+				const cmdStr = String(cmd);
+				if (cmdStr === "git check-ignore -q .worktrees") {
+					throw new Error("exit code 1");
+				}
+				return Buffer.from("");
+			});
+
+			expect(() =>
+				gitService.ensureWorktreesIgnored("/home/user/my-project"),
+			).toThrow(".worktrees is not in .gitignore for /home/user/my-project");
+		});
+	});
 });

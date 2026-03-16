@@ -611,7 +611,7 @@ describe("SelfAddRepoCommand", () => {
 				name: "new-repo",
 				repositoryPath: "/home/user/.miley/repos/new-repo",
 				baseBranch: "main",
-				workspaceBaseDir: "/home/user/.miley/worktrees",
+				workspaceBaseDir: "/home/user/.miley/repos/new-repo/.worktrees",
 				linearWorkspaceId: "ws-123",
 				isActive: true,
 				routingLabels: ["new-repo"],

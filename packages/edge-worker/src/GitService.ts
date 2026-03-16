@@ -589,6 +589,9 @@ export class GitService {
 				throw new Error("Not a git repository");
 			}
 
+			// Safety check: .worktrees must be in .gitignore to avoid committing worktree contents
+			this.ensureWorktreesIgnored(repository.repositoryPath);
+
 			// Use Linear's preferred branch name, or generate one if not available
 			const rawBranchName =
 				issue.branchName ||
@@ -669,26 +672,55 @@ export class GitService {
 				}
 			}
 
-			// Fetch latest changes from remote
-			this.logger.debug("Fetching latest changes from remote...");
+			// Determine whether to use local branch or fetch from remote.
+			// When preferLocalBranch is true and the base branch exists locally,
+			// skip the fetch entirely and branch from the local copy.
+			let useLocalBranch = false;
+			if (repository.preferLocalBranch && createBranch) {
+				try {
+					execSync(`git rev-parse --verify "${baseBranch}"`, {
+						cwd: repository.repositoryPath,
+						stdio: "pipe",
+					});
+					useLocalBranch = true;
+					this.logger.info(
+						`preferLocalBranch: using local '${baseBranch}' (skipping fetch)`,
+					);
+				} catch {
+					this.logger.info(
+						`preferLocalBranch: local '${baseBranch}' not found, falling back to remote`,
+					);
+				}
+			}
+
+			// Fetch latest changes from remote (skip when using local branch)
 			let hasRemote = true;
-			try {
-				execSync("git fetch origin", {
-					cwd: repository.repositoryPath,
-					stdio: "pipe",
-				});
-			} catch (e) {
-				this.logger.warn(
-					"Warning: git fetch failed, proceeding with local branch:",
-					(e as Error).message,
-				);
-				hasRemote = false;
+			if (!useLocalBranch) {
+				this.logger.debug("Fetching latest changes from remote...");
+				try {
+					execSync("git fetch origin", {
+						cwd: repository.repositoryPath,
+						stdio: "pipe",
+					});
+				} catch (e) {
+					this.logger.warn(
+						"Warning: git fetch failed, proceeding with local branch:",
+						(e as Error).message,
+					);
+					hasRemote = false;
+				}
 			}
 
 			// Create the worktree - use determined base branch
 			let worktreeCmd: string;
 			if (createBranch) {
-				if (hasRemote) {
+				if (useLocalBranch) {
+					// preferLocalBranch path: branch from local base branch (no tracking)
+					this.logger.info(
+						`Creating git worktree at ${workspacePath} from local ${baseBranch}`,
+					);
+					worktreeCmd = `git worktree add -b "${branchName}" "${workspacePath}" "${baseBranch}"`;
+				} else if (hasRemote) {
 					// Check if the base branch exists remotely
 					let useRemoteBranch = false;
 					try {
@@ -875,6 +907,26 @@ export class GitService {
 		if (scriptToRun) {
 			const scriptPath = join(repositoryPath, scriptToRun.file);
 			await this.runSetupScript(scriptPath, "repository", workspacePath, issue);
+		}
+	}
+
+	/**
+	 * Verify that .worktrees is in .gitignore for the given repository.
+	 * Throws a descriptive error if .worktrees would be tracked by git.
+	 */
+	ensureWorktreesIgnored(repositoryPath: string): void {
+		try {
+			execSync("git check-ignore -q .worktrees", {
+				cwd: repositoryPath,
+				stdio: "pipe",
+			});
+			// Exit code 0 means .worktrees IS ignored — all good
+		} catch {
+			// Exit code 1 means .worktrees is NOT ignored
+			throw new Error(
+				`.worktrees is not in .gitignore for ${repositoryPath}. ` +
+					"Add '.worktrees/' to your .gitignore to prevent committing worktree contents.",
+			);
 		}
 	}
 }

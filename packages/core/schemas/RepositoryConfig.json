@@ -51,6 +51,9 @@
 		"workspaceBaseDir": {
 			"type": "string"
 		},
+		"preferLocalBranch": {
+			"type": "boolean"
+		},
 		"isActive": {
 			"type": "boolean"
 		},
