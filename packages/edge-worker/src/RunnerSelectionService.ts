@@ -7,12 +7,9 @@ import {
 import type {
 	EdgeWorkerConfig,
 	ILogger,
-	MileyAgentSession,
 	RepositoryConfig,
 	RunnerType,
 } from "miley-core";
-
-import type { ProcedureAnalyzer } from "./procedures/index.js";
 
 export class RunnerSelectionService {
 	private config: EdgeWorkerConfig;
@@ -557,36 +554,5 @@ export class RunnerSelectionService {
 		}
 		// 5. No defaults for disallowedTools
 		return [];
-	}
-
-	/**
-	 * Merge subroutine-level disallowedTools with base disallowedTools
-	 * @param session Current agent session
-	 * @param baseDisallowedTools Base disallowed tools from repository/global config
-	 * @param logContext Context string for logging (e.g., "EdgeWorker", "resumeClaudeSession")
-	 * @param procedureAnalyzer ProcedureAnalyzer instance to resolve current subroutine
-	 * @returns Merged disallowed tools list
-	 */
-	public mergeSubroutineDisallowedTools(
-		session: MileyAgentSession,
-		baseDisallowedTools: string[],
-		logContext: string,
-		procedureAnalyzer: ProcedureAnalyzer,
-	): string[] {
-		const currentSubroutine = procedureAnalyzer.getCurrentSubroutine(session);
-		if (currentSubroutine?.disallowedTools) {
-			const mergedTools = [
-				...new Set([
-					...baseDisallowedTools,
-					...currentSubroutine.disallowedTools,
-				]),
-			];
-			this.logger.debug(
-				`[${logContext}] Merged subroutine-level disallowedTools for ${currentSubroutine.name}:`,
-				currentSubroutine.disallowedTools,
-			);
-			return mergedTools;
-		}
-		return baseDisallowedTools;
 	}
 }

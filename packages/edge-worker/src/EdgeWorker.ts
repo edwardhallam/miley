@@ -73,17 +73,9 @@ import { ActivityPoster } from "./ActivityPoster.js";
 import { AgentSessionManager } from "./AgentSessionManager.js";
 import { AskUserQuestionHandler } from "./AskUserQuestionHandler.js";
 import { AttachmentService } from "./AttachmentService.js";
-import { ChatSessionHandler } from "./ChatSessionHandler.js";
 import { ConfigManager, type RepositoryChanges } from "./ConfigManager.js";
 import { GitService } from "./GitService.js";
 import { GlobalSessionRegistry } from "./GlobalSessionRegistry.js";
-import { PromptBuilder } from "./PromptBuilder.js";
-import {
-	ProcedureAnalyzer,
-	type ProcedureDefinition,
-	type RequestClassification,
-	type SubroutineDefinition,
-} from "./procedures/index.js";
 import type {
 	IssueContextResult,
 	PromptAssembly,
@@ -118,12 +110,9 @@ import {
 	isPullRequestReviewCommentPayload,
 	isPullRequestReviewPayload,
 	type MileyToolsOptions,
-	SlackEventTransport,
-	type SlackWebhookEvent,
 	stripMention,
 } from "./removed-package-stubs.js";
 import { SharedApplicationServer } from "./SharedApplicationServer.js";
-import { SlackChatAdapter } from "./SlackChatAdapter.js";
 import type { IActivitySink } from "./sinks/IActivitySink.js";
 import { LinearActivitySink } from "./sinks/LinearActivitySink.js";
 import type { AgentSessionData, EdgeWorkerEvents } from "./types.js";
@@ -168,9 +157,6 @@ export class EdgeWorker extends EventEmitter {
 	private issueTrackers: Map<string, IIssueTrackerService> = new Map(); // one issue tracker per Linear workspace (keyed by linearWorkspaceId)
 	private linearEventTransport: LinearEventTransport | null = null; // Single event transport for webhook delivery
 	private gitHubEventTransport: GitHubEventTransport | null = null; // GitHub event transport for forwarded GitHub webhooks
-	private slackEventTransport: SlackEventTransport | null = null;
-	private chatSessionHandler: ChatSessionHandler<SlackWebhookEvent> | null =
-		null;
 	private gitHubCommentService: GitHubCommentService; // Service for posting comments back to GitHub PRs
 	private cliRPCServer: CLIRPCServer | null = null; // CLI RPC server for CLI platform mode
 	private configUpdater: ConfigUpdater | null = null; // Single config updater for configuration updates
@@ -178,7 +164,6 @@ export class EdgeWorker extends EventEmitter {
 	private sharedApplicationServer: SharedApplicationServer;
 	private mileyHome: string;
 	private globalSessionRegistry: GlobalSessionRegistry; // Centralized session storage across all repositories
-	private procedureAnalyzer: ProcedureAnalyzer; // Intelligent workflow routing
 	private configPath?: string; // Path to config.json file
 	/** @internal - Exposed for testing only */
 	public repositoryRouter: RepositoryRouter; // Repository routing and selection
@@ -194,7 +179,6 @@ export class EdgeWorker extends EventEmitter {
 	private runnerSelectionService: RunnerSelectionService;
 	private activityPoster: ActivityPoster;
 	private configManager: ConfigManager;
-	private promptBuilder: PromptBuilder;
 	private readonly mileyToolsMcpEndpoint = "/mcp/miley-tools";
 	private mileyToolsMcpRegistered = false;
 	private mileyToolsMcpContexts = new Map<string, MileyToolsMcpContextEntry>();
@@ -222,22 +206,6 @@ export class EdgeWorker extends EventEmitter {
 
 		// Initialize global session registry (centralized session storage)
 		this.globalSessionRegistry = new GlobalSessionRegistry();
-
-		// Initialize procedure router for fast classification
-		// Use the configured default runner (or auto-detect from API keys)
-		const simpleRunnerType = this.resolveDefaultSimpleRunnerType();
-		const simpleRunnerModel =
-			simpleRunnerType === "claude"
-				? "haiku"
-				: simpleRunnerType === "gemini"
-					? "gemini-2.5-flash-lite"
-					: "gpt-5";
-		this.procedureAnalyzer = new ProcedureAnalyzer({
-			mileyHome: this.mileyHome,
-			model: simpleRunnerModel,
-			timeoutMs: 100000,
-			runnerType: simpleRunnerType,
-		});
 
 		// Initialize repository router with dependencies
 		const repositoryRouterDeps: RepositoryRouterDeps = {
@@ -324,77 +292,6 @@ export class EdgeWorker extends EventEmitter {
 					parentSessionId,
 					prompt,
 					childSessionId,
-					repo,
-					this.agentSessionManager,
-				);
-			},
-			this.procedureAnalyzer,
-			this.sharedApplicationServer,
-		);
-
-		// Subscribe to session events once on the single ASM
-		this.agentSessionManager.on(
-			"subroutineComplete",
-			async ({ sessionId, session }) => {
-				const repoId = this.sessionRepositories.get(sessionId);
-				const repo = repoId ? this.repositories.get(repoId) : undefined;
-				if (!repo) {
-					this.logger.error(
-						`No repository found for session ${sessionId} during subroutine transition`,
-					);
-					return;
-				}
-				await this.handleSubroutineTransition(
-					sessionId,
-					session,
-					repo,
-					this.agentSessionManager,
-				);
-			},
-		);
-
-		this.agentSessionManager.on(
-			"validationLoopIteration",
-			async ({ sessionId, session, fixerPrompt, iteration, maxIterations }) => {
-				const repoId = this.sessionRepositories.get(sessionId);
-				const repo = repoId ? this.repositories.get(repoId) : undefined;
-				if (!repo) {
-					this.logger.error(
-						`No repository found for session ${sessionId} during validation loop`,
-					);
-					return;
-				}
-				this.logger.info(
-					`Validation loop iteration ${iteration}/${maxIterations}, running fixer`,
-				);
-				await this.handleValidationLoopFixer(
-					sessionId,
-					session,
-					repo,
-					this.agentSessionManager,
-					fixerPrompt,
-					iteration,
-				);
-			},
-		);
-
-		this.agentSessionManager.on(
-			"validationLoopRerun",
-			async ({ sessionId, session, iteration }) => {
-				const repoId = this.sessionRepositories.get(sessionId);
-				const repo = repoId ? this.repositories.get(repoId) : undefined;
-				if (!repo) {
-					this.logger.error(
-						`No repository found for session ${sessionId} during validation rerun`,
-					);
-					return;
-				}
-				this.logger.info(
-					`Validation loop re-running verifications (iteration ${iteration})`,
-				);
-				await this.handleValidationLoopRerun(
-					sessionId,
-					session,
 					repo,
 					this.agentSessionManager,
 				);
@@ -494,14 +391,6 @@ export class EdgeWorker extends EventEmitter {
 			this.configPath,
 			this.repositories,
 		);
-		this.promptBuilder = new PromptBuilder({
-			logger: this.logger,
-			repositories: this.repositories,
-			issueTrackers: this.issueTrackers,
-			gitService: this.gitService,
-			config: this.config,
-		});
-
 		// Components will be initialized and registered in start() method before server starts
 	}
 
@@ -519,31 +408,9 @@ export class EdgeWorker extends EventEmitter {
 				await this.removeDeletedRepositories(changes.removed);
 				await this.updateModifiedRepositories(changes.modified);
 				await this.addNewRepositories(changes.added);
-				const prevDefaultRunner = this.config.defaultRunner;
 				this.config = changes.newConfig;
 				this.configManager.setConfig(changes.newConfig);
 				this.runnerSelectionService.setConfig(changes.newConfig);
-
-				// Reconstruct ProcedureAnalyzer if the default runner changed,
-				// since its internal SimpleRunner is baked in at construction time.
-				if (changes.newConfig.defaultRunner !== prevDefaultRunner) {
-					const simpleRunnerType = this.resolveDefaultSimpleRunnerType();
-					const simpleRunnerModel =
-						simpleRunnerType === "claude"
-							? "haiku"
-							: simpleRunnerType === "gemini"
-								? "gemini-2.5-flash-lite"
-								: "gpt-5";
-					this.procedureAnalyzer = new ProcedureAnalyzer({
-						mileyHome: this.mileyHome,
-						model: simpleRunnerModel,
-						timeoutMs: 100000,
-						runnerType: simpleRunnerType,
-					});
-					this.logger.info(
-						`🔄 ProcedureAnalyzer reconstructed with runner type: ${simpleRunnerType}`,
-					);
-				}
 			},
 		);
 		this.configManager.startConfigWatcher();
@@ -788,105 +655,11 @@ export class EdgeWorker extends EventEmitter {
 	}
 
 	/**
-	 * Register the Slack event transport for receiving forwarded Slack webhooks from CYHOST.
-	 * This creates a /slack-webhook endpoint that handles @mention events from Slack.
+	 * Register the Slack event transport (disabled — Slack integration removed).
 	 */
 	private registerSlackEventTransport(): void {
-		const chatRepositoryPaths = Array.from(this.repositories.values()).map(
-			(repo) => repo.repositoryPath,
-		);
-		const routingContext =
-			this.promptBuilder.generateRoutingContextForAllWorkspaces();
-		const slackAdapter = new SlackChatAdapter(
-			chatRepositoryPaths,
-			this.logger,
-			{ repositoryRoutingContext: routingContext },
-		);
-
-		// Build MCP config for Slack sessions using first configured workspace
-		const firstLinearWorkspaceId = Object.keys(
-			this.config.linearWorkspaces || {},
-		)[0];
-		const firstRepoId = Array.from(this.repositories.values())[0]?.id;
-		const mcpConfig =
-			firstLinearWorkspaceId && firstRepoId
-				? this.buildMcpConfig(firstRepoId, firstLinearWorkspaceId)
-				: undefined;
-
-		if (!firstLinearWorkspaceId || !firstRepoId) {
-			this.logger.warn(
-				"No repositories or workspaces configured — Slack sessions will not have access to Linear MCP tools",
-			);
-		}
-
-		this.chatSessionHandler = new ChatSessionHandler(
-			slackAdapter,
-			{
-				mileyHome: this.mileyHome,
-				chatRepositoryPaths,
-				mcpConfig,
-				createRunner: (config) => {
-					const runnerType = this.runnerSelectionService.getDefaultRunner();
-					return this.createRunnerForType(runnerType, {
-						...config,
-						model: this.getDefaultModelForRunner(runnerType),
-						fallbackModel: this.getDefaultFallbackModelForRunner(runnerType),
-					});
-				},
-				onWebhookStart: () => {
-					this.activeWebhookCount++;
-				},
-				onWebhookEnd: () => {
-					this.activeWebhookCount--;
-				},
-				onStateChange: () => this.savePersistedState(),
-				onClaudeError: (error) => this.handleClaudeError(error),
-			},
-			this.logger,
-		);
-
-		// Use direct Slack signature verification only when BOTH:
-		// 1. SLACK_SIGNING_SECRET is set (we have the secret to verify)
-		// 2. MILEY_HOST_EXTERNAL is true (self-hosted: Slack sends directly to us)
-		// On cloud droplets, CYHOST forwards webhooks with Bearer token auth
-		// (it verifies the Slack signature itself and doesn't forward the headers).
-		const isExternalHost =
-			process.env.MILEY_HOST_EXTERNAL?.toLowerCase().trim() === "true";
-		const hasSlackSigningSecret =
-			process.env.SLACK_SIGNING_SECRET != null &&
-			process.env.SLACK_SIGNING_SECRET !== "";
-		const useDirectSlackWebhooks = isExternalHost && hasSlackSigningSecret;
-
-		const slackVerificationMode = useDirectSlackWebhooks ? "direct" : "proxy";
-		const slackSecret = useDirectSlackWebhooks
-			? process.env.SLACK_SIGNING_SECRET!
-			: process.env.MILEY_API_KEY || "";
-
-		this.slackEventTransport = new SlackEventTransport({
-			fastifyServer: this.sharedApplicationServer.getFastifyInstance(),
-			verificationMode: slackVerificationMode,
-			secret: slackSecret,
-		});
-
-		this.slackEventTransport.on("event", (event: SlackWebhookEvent) => {
-			this.chatSessionHandler!.handleEvent(event).catch((error) => {
-				this.logger.error(
-					"Failed to handle Slack webhook",
-					error instanceof Error ? error : new Error(String(error)),
-				);
-			});
-		});
-		this.slackEventTransport.on("message", (message: InternalMessage) => {
-			this.handleMessage(message);
-		});
-		this.slackEventTransport.on("error", (error: Error) => {
-			this.handleError(error);
-		});
-
-		this.slackEventTransport.register();
-
 		this.logger.info(
-			`Slack event transport registered (${slackVerificationMode} mode)`,
+			"Slack event transport disabled (Slack integration removed)",
 		);
 	}
 
@@ -1529,11 +1302,6 @@ ${taskSection}`;
 			}
 		}
 
-		// Busy if any chat platform runner is actively running
-		if (this.chatSessionHandler?.isAnyRunnerBusy()) {
-			return "busy";
-		}
-
 		return "idle";
 	}
 
@@ -1558,10 +1326,6 @@ ${taskSection}`;
 		const agentRunners: IAgentRunner[] = [
 			...this.agentSessionManager.getAllAgentRunners(),
 		];
-		if (this.chatSessionHandler) {
-			agentRunners.push(...this.chatSessionHandler.getAllRunners());
-		}
-
 		// Kill all agent processes with null checking
 		for (const runner of agentRunners) {
 			if (runner) {
@@ -1693,169 +1457,6 @@ ${taskSection}`;
 			log.error(
 				`Error context - Parent issue: ${parentSession.issueId}, Repository: ${parentRepo.name}`,
 			);
-		}
-	}
-
-	/**
-	 * Handle subroutine transition when a subroutine completes
-	 * This is triggered by the AgentSessionManager's 'subroutineComplete' event
-	 */
-	private async handleSubroutineTransition(
-		sessionId: string,
-		session: MileyAgentSession,
-		repo: RepositoryConfig,
-		agentSessionManager: AgentSessionManager,
-	): Promise<void> {
-		const log = this.logger.withContext({ sessionId });
-		log.info(`Handling subroutine completion for session ${sessionId}`);
-
-		// Get next subroutine (advancement already handled by AgentSessionManager)
-		const nextSubroutine = this.procedureAnalyzer.getCurrentSubroutine(session);
-
-		if (!nextSubroutine) {
-			log.info(`Procedure complete for session ${sessionId}`);
-			return;
-		}
-
-		log.info(`Next subroutine: ${nextSubroutine.name}`);
-
-		// Post a visually distinct status update to Linear so the user knows what's happening next
-		await agentSessionManager.createThoughtActivity(
-			sessionId,
-			`---\n**${nextSubroutine.description}...**`,
-		);
-
-		// Load subroutine prompt
-		let subroutinePrompt: string | null;
-		try {
-			subroutinePrompt = await this.loadSubroutinePrompt(
-				nextSubroutine,
-				this.getWorkspaceSlug(requireLinearWorkspaceId(repo)),
-			);
-			if (!subroutinePrompt) {
-				// Fallback if loadSubroutinePrompt returns null
-				subroutinePrompt = `Continue with: ${nextSubroutine.description}`;
-			}
-		} catch (error) {
-			log.error(`Failed to load subroutine prompt:`, error);
-			// Fallback to simple prompt
-			subroutinePrompt = `Continue with: ${nextSubroutine.description}`;
-		}
-
-		// Resume Claude session with subroutine prompt
-		try {
-			await this.resumeAgentSession(
-				session,
-				repo,
-				sessionId,
-				agentSessionManager,
-				subroutinePrompt,
-				"", // No attachment manifest
-				false, // Not a new session
-				[], // No additional allowed directories
-				undefined, // linearWorkspaceId — will fall back to repo.linearWorkspaceId
-				nextSubroutine?.singleTurn ? 1 : undefined, // singleTurn mode
-			);
-			log.info(
-				`Successfully resumed session for ${nextSubroutine.name} subroutine${nextSubroutine.singleTurn ? " (singleTurn)" : ""}`,
-			);
-		} catch (error) {
-			log.error(
-				`Failed to resume session for ${nextSubroutine.name} subroutine:`,
-				error,
-			);
-		}
-	}
-
-	/**
-	 * Handle validation loop fixer - run the fixer prompt
-	 */
-	private async handleValidationLoopFixer(
-		sessionId: string,
-		session: MileyAgentSession,
-		repo: RepositoryConfig,
-		agentSessionManager: AgentSessionManager,
-		fixerPrompt: string,
-		iteration: number,
-	): Promise<void> {
-		this.logger.info(
-			`Running fixer for session ${sessionId}, iteration ${iteration}`,
-		);
-
-		try {
-			await this.resumeAgentSession(
-				session,
-				repo,
-				sessionId,
-				agentSessionManager,
-				fixerPrompt,
-				"", // No attachment manifest
-				false, // Not a new session
-				[], // No additional allowed directories
-				undefined, // linearWorkspaceId — will fall back to repo.linearWorkspaceId
-				undefined, // No maxTurns limit for fixer
-			);
-			this.logger.info(`Successfully started fixer for iteration ${iteration}`);
-		} catch (error) {
-			this.logger.error(
-				`Failed to run fixer for iteration ${iteration}:`,
-				error,
-			);
-		}
-	}
-
-	/**
-	 * Handle validation loop rerun - re-run the verifications subroutine
-	 */
-	private async handleValidationLoopRerun(
-		sessionId: string,
-		session: MileyAgentSession,
-		repo: RepositoryConfig,
-		agentSessionManager: AgentSessionManager,
-	): Promise<void> {
-		this.logger.info(`Re-running verifications for session ${sessionId}`);
-
-		// Get the verifications subroutine definition
-		const verificationsSubroutine =
-			this.procedureAnalyzer.getCurrentSubroutine(session);
-
-		if (
-			!verificationsSubroutine ||
-			verificationsSubroutine.name !== "verifications"
-		) {
-			this.logger.error(
-				`Expected verifications subroutine, got: ${verificationsSubroutine?.name}`,
-			);
-			return;
-		}
-
-		try {
-			// Load the verifications prompt
-			const subroutinePrompt = await this.loadSubroutinePrompt(
-				verificationsSubroutine,
-				this.getWorkspaceSlug(requireLinearWorkspaceId(repo)),
-			);
-
-			if (!subroutinePrompt) {
-				this.logger.error(`Failed to load verifications prompt`);
-				return;
-			}
-
-			await this.resumeAgentSession(
-				session,
-				repo,
-				sessionId,
-				agentSessionManager,
-				subroutinePrompt,
-				"", // No attachment manifest
-				false, // Not a new session
-				[], // No additional allowed directories
-				undefined, // linearWorkspaceId — will fall back to repo.linearWorkspaceId
-				undefined, // No maxTurns limit
-			);
-			this.logger.info(`Successfully re-started verifications`);
-		} catch (error) {
-			this.logger.error(`Failed to re-run verifications:`, error);
 		}
 	}
 
@@ -2632,22 +2233,19 @@ ${taskSection}`;
 	 */
 	private buildIssueUpdatePrompt(
 		issueIdentifier: string,
-		issueData: {
+		_issueData: {
 			title: string;
 			description?: string | null;
 			attachments?: unknown;
 		},
-		updatedFrom: {
+		_updatedFrom: {
 			title?: string;
 			description?: string;
 			attachments?: unknown;
 		},
 	): string {
-		return this.promptBuilder.buildIssueUpdatePrompt(
-			issueIdentifier,
-			issueData,
-			updatedFrom,
-		);
+		// TODO: Task 7b — reimplement without PromptBuilder
+		return `Issue ${issueIdentifier} was updated. Review the current issue state.`;
 	}
 
 	/**
@@ -2671,14 +2269,6 @@ ${taskSection}`;
 			);
 		}
 		return workspaceConfig.linearToken;
-	}
-
-	/**
-	 * Get the Linear workspace slug for a workspace from workspace-level config.
-	 */
-	private getWorkspaceSlug(linearWorkspaceId: string): string | undefined {
-		return this.config.linearWorkspaces?.[linearWorkspaceId]
-			?.linearWorkspaceSlug;
 	}
 
 	/**
@@ -3058,114 +2648,11 @@ ${taskSection}`;
 		// Post ephemeral "Routing..." thought
 		await agentSessionManager.postAnalyzingThought(sessionId);
 
-		// Fetch labels early (needed for label override check)
+		// Fetch labels early
 		const labels = await this.fetchIssueLabels(fullIssue);
-		// Lowercase labels for case-insensitive comparison
-		const lowercaseLabels = labels.map((label) => label.toLowerCase());
 
-		// Check for label overrides BEFORE AI routing (use primary repo for label config)
-		const debuggerConfig = primaryRepo.labelPrompts?.debugger;
-		const debuggerLabels = Array.isArray(debuggerConfig)
-			? debuggerConfig
-			: debuggerConfig?.labels;
-		const hasDebuggerLabel = debuggerLabels?.some((label: string) =>
-			lowercaseLabels.includes(label.toLowerCase()),
-		);
-
-		// ALWAYS check for 'orchestrator' label (case-insensitive) regardless of EdgeConfig
-		// This is a hardcoded rule: any issue with 'orchestrator'/'Orchestrator' label
-		// goes to orchestrator procedure
-		const hasHardcodedOrchestratorLabel =
-			lowercaseLabels.includes("orchestrator");
-
-		// Also check any additional orchestrator labels from config
-		const orchestratorConfig = primaryRepo.labelPrompts?.orchestrator;
-		const orchestratorLabels = Array.isArray(orchestratorConfig)
-			? orchestratorConfig
-			: orchestratorConfig?.labels;
-		const hasConfiguredOrchestratorLabel =
-			orchestratorLabels?.some((label: string) =>
-				lowercaseLabels.includes(label.toLowerCase()),
-			) ?? false;
-
-		const hasOrchestratorLabel =
-			hasHardcodedOrchestratorLabel || hasConfiguredOrchestratorLabel;
-
-		// Check for graphite label (for graphite-orchestrator combination)
-		const graphiteConfig = primaryRepo.labelPrompts?.graphite;
-		const graphiteLabels = Array.isArray(graphiteConfig)
-			? graphiteConfig
-			: (graphiteConfig?.labels ?? ["graphite"]);
-		const hasGraphiteLabel = graphiteLabels?.some((label: string) =>
-			lowercaseLabels.includes(label.toLowerCase()),
-		);
-
-		// Graphite-orchestrator requires BOTH graphite AND orchestrator labels
-		const hasGraphiteOrchestratorLabels =
-			hasGraphiteLabel && hasOrchestratorLabel;
-
-		let finalProcedure: ProcedureDefinition;
-		let finalClassification: RequestClassification;
-
-		// If labels indicate a specific procedure, use that instead of AI routing
-		if (hasDebuggerLabel) {
-			const debuggerProcedure =
-				this.procedureAnalyzer.getProcedure("debugger-full");
-			if (!debuggerProcedure) {
-				throw new Error("debugger-full procedure not found in registry");
-			}
-			finalProcedure = debuggerProcedure;
-			finalClassification = "debugger";
-			log.info(
-				`Using debugger-full procedure due to debugger label (skipping AI routing)`,
-			);
-		} else if (hasGraphiteOrchestratorLabels) {
-			// Graphite-orchestrator takes precedence over regular orchestrator when both labels present
-			const orchestratorProcedure =
-				this.procedureAnalyzer.getProcedure("orchestrator-full");
-			if (!orchestratorProcedure) {
-				throw new Error("orchestrator-full procedure not found in registry");
-			}
-			finalProcedure = orchestratorProcedure;
-			// Use orchestrator classification but the system prompt will be graphite-orchestrator
-			finalClassification = "orchestrator";
-			log.info(
-				`Using orchestrator-full procedure with graphite-orchestrator prompt (graphite + orchestrator labels)`,
-			);
-		} else if (hasOrchestratorLabel) {
-			const orchestratorProcedure =
-				this.procedureAnalyzer.getProcedure("orchestrator-full");
-			if (!orchestratorProcedure) {
-				throw new Error("orchestrator-full procedure not found in registry");
-			}
-			finalProcedure = orchestratorProcedure;
-			finalClassification = "orchestrator";
-			log.info(
-				`Using orchestrator-full procedure due to orchestrator label (skipping AI routing)`,
-			);
-		} else {
-			// No label override - use AI routing
-			const issueDescription =
-				`${issue.title}\n\n${fullIssue.description || ""}`.trim();
-			const routingDecision =
-				await this.procedureAnalyzer.determineRoutine(issueDescription);
-			finalProcedure = routingDecision.procedure;
-			finalClassification = routingDecision.classification;
-
-			log.info(
-				`AI routing: ${routingDecision.classification} → ${finalProcedure.name}`,
-			);
-		}
-
-		// Initialize procedure metadata in session with final decision
-		this.procedureAnalyzer.initializeProcedureMetadata(session, finalProcedure);
-
-		// Post single procedure selection result (replaces ephemeral routing thought)
-		await agentSessionManager.postProcedureSelectionThought(
-			sessionId,
-			finalProcedure.name,
-			finalClassification,
-		);
+		// Classification/procedure routing removed — Task 7b will wire up the simplified path
+		// For now, proceed directly to prompt assembly
 
 		// Build and start Claude with initial prompt using full issue (streaming mode)
 		log.info(`Building initial prompt for issue ${fullIssue.identifier}`);
@@ -3221,37 +2708,17 @@ ${taskSection}`;
 				}
 			}
 
-			// Get current subroutine to check for singleTurn mode and disallowAllTools
-			const currentSubroutine =
-				this.procedureAnalyzer.getCurrentSubroutine(session);
-
-			// Build allowed tools list with Linear MCP tools (now with prompt type context)
-			// If subroutine has disallowAllTools: true, use empty array to disable all tools
-			const allowedTools = currentSubroutine?.disallowAllTools
-				? []
-				: this.buildAllowedTools(repositories, promptType);
-			const baseDisallowedTools = this.buildDisallowedTools(
+			// Build allowed tools list
+			const allowedTools = this.buildAllowedTools(repositories, promptType);
+			const disallowedTools = this.buildDisallowedTools(
 				repositories,
 				promptType,
 			);
 
-			// Merge subroutine-level disallowedTools if applicable
-			const disallowedTools = this.mergeSubroutineDisallowedTools(
-				session,
-				baseDisallowedTools,
-				"EdgeWorker",
+			log.debug(
+				`Configured allowed tools for ${fullIssue.identifier}:`,
+				allowedTools,
 			);
-
-			if (currentSubroutine?.disallowAllTools) {
-				log.debug(
-					`All tools disabled for ${fullIssue.identifier} (subroutine: ${currentSubroutine.name})`,
-				);
-			} else {
-				log.debug(
-					`Configured allowed tools for ${fullIssue.identifier}:`,
-					allowedTools,
-				);
-			}
 			if (disallowedTools.length > 0) {
 				log.debug(
 					`Configured disallowed tools for ${fullIssue.identifier}:`,
@@ -3260,7 +2727,6 @@ ${taskSection}`;
 			}
 
 			// Create agent runner with system prompt from assembly
-			// buildAgentRunnerConfig now determines runner type from labels internally
 			const { config: runnerConfig, runnerType } = this.buildAgentRunnerConfig(
 				session,
 				primaryRepo,
@@ -3273,8 +2739,8 @@ ${taskSection}`;
 				labels, // Pass labels for runner selection and model override
 				fullIssue.description || undefined, // Description tags can override label selectors
 				undefined, // maxTurns
-				currentSubroutine?.singleTurn, // singleTurn flag
-				currentSubroutine?.disallowAllTools, // disallowAllTools flag - also disables MCP tools
+				undefined, // singleTurn flag
+				undefined, // disallowAllTools flag
 				undefined, // mcpOptions
 				linearWorkspaceId,
 			);
@@ -3920,7 +3386,13 @@ ${taskSection}`;
 	 * Fetch issue labels for a given issue
 	 */
 	private async fetchIssueLabels(issue: Issue): Promise<string[]> {
-		return this.promptBuilder.fetchIssueLabels(issue);
+		try {
+			const labels = await issue.labels();
+			return labels.nodes.map((label: { name: string }) => label.name);
+		} catch (error) {
+			this.logger.error(`Failed to fetch labels for issue ${issue.id}:`, error);
+			return [];
+		}
 	}
 
 	/**
@@ -3986,8 +3458,8 @@ ${taskSection}`;
 	 * Determine system prompt based on issue labels and repository configuration
 	 */
 	private async determineSystemPromptFromLabels(
-		labels: string[],
-		repository: RepositoryConfig,
+		_labels: string[],
+		_repository: RepositoryConfig,
 	): Promise<
 		| {
 				prompt: string;
@@ -4001,39 +3473,36 @@ ${taskSection}`;
 		  }
 		| undefined
 	> {
-		return this.promptBuilder.determineSystemPromptFromLabels(labels, [
-			repository,
-		]);
+		// TODO: Task 7b — reimplement system prompt selection without PromptBuilder
+		return undefined;
 	}
 
 	/**
 	 * Build prompt for mention-triggered sessions
-	 * @param issue Full Linear issue object
-	 * @param repository Repository configuration
-	 * @param agentSession The agent session containing the mention
-	 * @param attachmentManifest Optional attachment manifest to append
-	 * @param guidance Optional agent guidance rules from Linear
-	 * @returns The constructed prompt and optional version tag
 	 */
 	private async buildMentionPrompt(
 		issue: Issue,
-		agentSession: WebhookAgentSession,
-		attachmentManifest: string = "",
-		guidance?: GuidanceRule[],
+		_agentSession: WebhookAgentSession,
+		_attachmentManifest: string = "",
+		_guidance?: GuidanceRule[],
 	): Promise<{ prompt: string; version?: string }> {
-		return this.promptBuilder.buildMentionPrompt(
-			issue,
-			agentSession,
-			attachmentManifest,
-			guidance,
-		);
+		// TODO: Task 7b — reimplement without PromptBuilder
+		return {
+			prompt: `Respond to the mention on issue ${issue.identifier}: ${issue.title}`,
+		};
 	}
 
 	/**
 	 * Convert full Linear SDK issue to CoreIssue interface for Session creation
 	 */
 	private convertLinearIssueToCore(issue: Issue): IssueMinimal {
-		return this.promptBuilder.convertLinearIssueToCore(issue);
+		return {
+			id: issue.id,
+			identifier: issue.identifier,
+			title: issue.title,
+			description: issue.description ?? undefined,
+			branchName: issue.branchName,
+		};
 	}
 
 	/**
@@ -4820,36 +4289,12 @@ ${taskSection}`;
 		const parts: string[] = [];
 
 		// 1. Determine system prompt from labels
-		// Only for delegation (not mentions) or when /label-based-prompt is requested
+		// TODO: Task 7b — reimplement system prompt selection
 		const repositories = input.repositories ?? [input.repository];
-		let labelBasedSystemPrompt: string | undefined;
-		if (!input.isMentionTriggered || input.isLabelBasedPromptRequested) {
-			const result = await this.promptBuilder.determineSystemPromptFromLabels(
-				input.labels || [],
-				repositories,
-			);
-			labelBasedSystemPrompt = result?.prompt;
-		}
+		const systemPrompt = "";
+		const promptType = this.determinePromptType(input, false);
 
-		// 2. Determine system prompt based on prompt type
-		// Label-based: Use only the label-based system prompt
-		// Fallback: Use scenarios system prompt (shared instructions)
-		let systemPrompt: string;
-		if (labelBasedSystemPrompt) {
-			// Use label-based system prompt as-is (no shared instructions)
-			systemPrompt = labelBasedSystemPrompt;
-		} else {
-			// Use scenarios system prompt for fallback cases
-			const sharedInstructions = await this.loadSharedInstructions();
-			systemPrompt = sharedInstructions;
-		}
-
-		// 3. Build issue context using appropriate builder
-		// Use label-based prompt ONLY if we have a label-based system prompt
-		const promptType = this.determinePromptType(
-			input,
-			!!labelBasedSystemPrompt,
-		);
+		// 2. Build issue context
 		const issueContext = await this.buildIssueContextForPromptAssembly(
 			input.fullIssue,
 			repositories,
@@ -4863,24 +4308,8 @@ ${taskSection}`;
 		parts.push(issueContext.prompt);
 		components.push("issue-context");
 
-		// 4. Load and append initial subroutine prompt
-		const currentSubroutine = this.procedureAnalyzer.getCurrentSubroutine(
-			input.session,
-		);
-		let subroutineName: string | undefined;
-		if (currentSubroutine) {
-			const resolvedWsId =
-				input.linearWorkspaceId ?? requireLinearWorkspaceId(input.repository);
-			const subroutinePrompt = await this.loadSubroutinePrompt(
-				currentSubroutine,
-				this.getWorkspaceSlug(resolvedWsId),
-			);
-			if (subroutinePrompt) {
-				parts.push(subroutinePrompt);
-				components.push("subroutine-prompt");
-				subroutineName = currentSubroutine.name;
-			}
-		}
+		// Subroutine prompts removed (classification/procedure system removed)
+		const subroutineName: string | undefined = undefined;
 
 		// 5. Add user comment (if present)
 		// Skip for mention-triggered prompts since the comment is already in the mention block
@@ -4979,34 +4408,16 @@ ${input.userComment}
 	}
 
 	/**
-	 * Load a subroutine prompt file
-	 * Extracted helper to make prompt assembly more readable
-	 */
-	private async loadSubroutinePrompt(
-		subroutine: SubroutineDefinition,
-		workspaceSlug?: string,
-	): Promise<string | null> {
-		return this.promptBuilder.loadSubroutinePrompt(subroutine, workspaceSlug);
-	}
-
-	/**
-	 * Load shared instructions that get appended to all system prompts
-	 */
-	private async loadSharedInstructions(): Promise<string> {
-		return this.promptBuilder.loadSharedInstructions();
-	}
-
-	/**
 	 * Adapter method for prompt assembly - routes to appropriate issue context builder
 	 */
 	private async buildIssueContextForPromptAssembly(
 		issue: Issue,
-		repositories: RepositoryConfig[],
+		_repositories: RepositoryConfig[],
 		promptType: PromptType,
-		attachmentManifest?: string,
-		guidance?: GuidanceRule[],
+		_attachmentManifest?: string,
+		_guidance?: GuidanceRule[],
 		agentSession?: WebhookAgentSession,
-		resolvedBaseBranches?: Record<string, BaseBranchResolution>,
+		_resolvedBaseBranches?: Record<string, BaseBranchResolution>,
 	): Promise<IssueContextResult> {
 		// Delegate to appropriate builder based on promptType
 		if (promptType === "mention") {
@@ -5018,71 +4429,15 @@ ${input.userComment}
 			return this.buildMentionPrompt(
 				issue,
 				agentSession,
-				attachmentManifest,
-				guidance,
+				_attachmentManifest,
+				_guidance,
 			);
 		}
-		if (
-			promptType === "label-based" ||
-			promptType === "label-based-prompt-command"
-		) {
-			return this.promptBuilder.buildLabelBasedPrompt(
-				issue,
-				repositories,
-				attachmentManifest,
-				guidance,
-				resolvedBaseBranches,
-			);
-		}
-		// Fallback to standard issue context
-		return this.promptBuilder.buildIssueContextPrompt(
-			issue,
-			repositories,
-			undefined, // No new comment for initial prompt assembly
-			attachmentManifest,
-			guidance,
-			resolvedBaseBranches,
-		);
-	}
-
-	/**
-	 * Resolve the default runner type for SimpleRunner (classification) use.
-	 * Uses config.defaultRunner if set, otherwise auto-detects from API keys,
-	 * falling back to "claude".
-	 */
-	private resolveDefaultSimpleRunnerType():
-		| "claude"
-		| "gemini"
-		| "codex"
-		| "cursor" {
-		if (this.config.defaultRunner) {
-			this.logger.info(
-				`🏃 SimpleRunner type resolved from config.defaultRunner: ${this.config.defaultRunner}`,
-			);
-			return this.config.defaultRunner;
-		}
-
-		// Auto-detect: if exactly one runner has API keys set, use it
-		const available: Array<RunnerType> = [];
-		if (process.env.CLAUDE_CODE_OAUTH_TOKEN || process.env.ANTHROPIC_API_KEY) {
-			available.push("claude");
-		}
-		if (process.env.GEMINI_API_KEY) {
-			available.push("gemini");
-		}
-		if (process.env.OPENAI_API_KEY) {
-			available.push("codex");
-		}
-		if (process.env.CURSOR_API_KEY) {
-			available.push("cursor");
-		}
-
-		const result =
-			available.length === 1 && available[0] ? available[0] : "claude";
-		this.logger.info(
-			`🏃 SimpleRunner type auto-detected: ${result} (available: ${available.join(", ") || "none"}, config.defaultRunner not set)`,
-		);
-		return result;
+		// TODO: Task 7b — reimplement label-based and fallback prompt builders
+		// For now, return a basic issue context
+		return {
+			prompt: `Issue ${issue.identifier}: ${issue.title}\n\n${issue.description || "No description."}`,
+		};
 	}
 
 	/**
@@ -5383,26 +4738,6 @@ ${input.userComment}
 	}
 
 	/**
-	 * Merge subroutine-level disallowedTools with base disallowedTools
-	 * @param session Current agent session
-	 * @param baseDisallowedTools Base disallowed tools from repository/global config
-	 * @param logContext Context string for logging (e.g., "EdgeWorker", "resumeClaudeSession")
-	 * @returns Merged disallowed tools list
-	 */
-	private mergeSubroutineDisallowedTools(
-		session: MileyAgentSession,
-		baseDisallowedTools: string[],
-		logContext: string,
-	): string[] {
-		return this.runnerSelectionService.mergeSubroutineDisallowedTools(
-			session,
-			baseDisallowedTools,
-			logContext,
-			this.procedureAnalyzer,
-		);
-	}
-
-	/**
 	 * Build allowed tools list with Linear MCP tools automatically included.
 	 * Accepts single or multiple repositories (union for multi-repo).
 	 */
@@ -5696,101 +5031,18 @@ ${input.userComment}
 	}
 
 	/**
-	 * Re-route procedure for a session (used when resuming from child or give feedback)
-	 * This ensures the currentSubroutine is reset to avoid suppression issues
+	 * Re-route procedure for a session (stub — classification/procedure system removed).
+	 * TODO: Task 7b will replace this with simplified session launch path.
 	 */
 	private async rerouteProcedureForSession(
-		session: MileyAgentSession,
-		sessionId: string,
-		agentSessionManager: AgentSessionManager,
-		promptBody: string,
-		repository: RepositoryConfig,
-		linearWorkspaceId: string,
+		_session: MileyAgentSession,
+		_sessionId: string,
+		_agentSessionManager: AgentSessionManager,
+		_promptBody: string,
+		_repository: RepositoryConfig,
+		_linearWorkspaceId: string,
 	): Promise<void> {
-		// Initialize procedure metadata using intelligent routing
-		if (!session.metadata) {
-			session.metadata = {};
-		}
-
-		// Post ephemeral "Routing..." thought
-		await agentSessionManager.postAnalyzingThought(sessionId);
-
-		// Fetch full issue and labels to check for Orchestrator label override
-		const issueTracker = this.issueTrackers.get(linearWorkspaceId);
-		let hasOrchestratorLabel = false;
-
-		// Get issueId from issueContext (preferred) or deprecated issueId field
-		const issueId = session.issueContext?.issueId ?? session.issueId;
-		if (issueTracker && issueId) {
-			try {
-				const fullIssue = await issueTracker.fetchIssue(issueId);
-				const labels = await this.fetchIssueLabels(fullIssue);
-
-				// ALWAYS check for 'orchestrator' label (case-insensitive) regardless of EdgeConfig
-				// This is a hardcoded rule: any issue with 'orchestrator'/'Orchestrator' label
-				// goes to orchestrator procedure
-				const lowercaseLabels = labels.map((label) => label.toLowerCase());
-				const hasHardcodedOrchestratorLabel =
-					lowercaseLabels.includes("orchestrator");
-
-				// Also check any additional orchestrator labels from config
-				const orchestratorConfig = repository.labelPrompts?.orchestrator;
-				const orchestratorLabels = Array.isArray(orchestratorConfig)
-					? orchestratorConfig
-					: orchestratorConfig?.labels;
-				const hasConfiguredOrchestratorLabel =
-					orchestratorLabels?.some((label: string) =>
-						lowercaseLabels.includes(label.toLowerCase()),
-					) ?? false;
-
-				hasOrchestratorLabel =
-					hasHardcodedOrchestratorLabel || hasConfiguredOrchestratorLabel;
-			} catch (error) {
-				this.logger.error(`Failed to fetch issue labels for routing:`, error);
-				// Continue with AI routing if label fetch fails
-			}
-		}
-
-		let selectedProcedure: ProcedureDefinition;
-		let finalClassification: RequestClassification;
-
-		// If Orchestrator label is present, ALWAYS use orchestrator-full procedure
-		if (hasOrchestratorLabel) {
-			const orchestratorProcedure =
-				this.procedureAnalyzer.getProcedure("orchestrator-full");
-			if (!orchestratorProcedure) {
-				throw new Error("orchestrator-full procedure not found in registry");
-			}
-			selectedProcedure = orchestratorProcedure;
-			finalClassification = "orchestrator";
-			this.logger.info(
-				`Using orchestrator-full procedure due to Orchestrator label (skipping AI routing)`,
-			);
-		} else {
-			// No Orchestrator label - use AI routing based on prompt content
-			const routingDecision = await this.procedureAnalyzer.determineRoutine(
-				promptBody.trim(),
-			);
-			selectedProcedure = routingDecision.procedure;
-			finalClassification = routingDecision.classification;
-
-			this.logger.info(
-				`AI routing: ${routingDecision.classification} → ${selectedProcedure.name}`,
-			);
-		}
-
-		// Initialize procedure metadata in session (resets currentSubroutine)
-		this.procedureAnalyzer.initializeProcedureMetadata(
-			session,
-			selectedProcedure,
-		);
-
-		// Post procedure selection result (replaces ephemeral routing thought)
-		await agentSessionManager.postProcedureSelectionThought(
-			sessionId,
-			selectedProcedure.name,
-			finalClassification,
-		);
+		// No-op: classification/procedure routing removed
 	}
 
 	/**
@@ -5999,30 +5251,9 @@ ${input.userComment}
 		const systemPrompt = systemPromptResult?.prompt;
 		const promptType = systemPromptResult?.type;
 
-		// Get current subroutine to check for singleTurn mode and disallowAllTools
-		const currentSubroutine =
-			this.procedureAnalyzer.getCurrentSubroutine(session);
-
 		// Build allowed tools list
-		// If subroutine has disallowAllTools: true, use empty array to disable all tools
-		const allowedTools = currentSubroutine?.disallowAllTools
-			? []
-			: this.buildAllowedTools(repository, promptType);
-		const baseDisallowedTools = this.buildDisallowedTools(
-			repository,
-			promptType,
-		);
-
-		// Merge subroutine-level disallowedTools if applicable
-		const disallowedTools = this.mergeSubroutineDisallowedTools(
-			session,
-			baseDisallowedTools,
-			"resumeClaudeSession",
-		);
-
-		if (currentSubroutine?.disallowAllTools) {
-			log.debug(`All tools disabled for subroutine: ${currentSubroutine.name}`);
-		}
+		const allowedTools = this.buildAllowedTools(repository, promptType);
+		const disallowedTools = this.buildDisallowedTools(repository, promptType);
 
 		// Set up attachments directory
 		const workspaceFolderName = basename(session.workspace.path);
@@ -6071,8 +5302,8 @@ ${input.userComment}
 			labels, // Always pass labels to preserve model override
 			fullIssue.description || undefined, // Description tags can override label selectors
 			maxTurns, // Pass maxTurns if specified
-			currentSubroutine?.singleTurn, // singleTurn flag
-			currentSubroutine?.disallowAllTools, // disallowAllTools flag - also disables MCP tools
+			undefined, // singleTurn flag
+			undefined, // disallowAllTools flag
 			undefined, // mcpOptions
 			resolvedWorkspaceId,
 		);

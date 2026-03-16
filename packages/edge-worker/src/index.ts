@@ -29,7 +29,6 @@ export type { SerializedGlobalRegistryState } from "./GlobalSessionRegistry.js";
 export { GlobalSessionRegistry } from "./GlobalSessionRegistry.js";
 export { RepositoryRouter } from "./RepositoryRouter.js";
 export { SharedApplicationServer } from "./SharedApplicationServer.js";
-export { SlackChatAdapter } from "./SlackChatAdapter.js";
 export type {
 	ActivityPostOptions,
 	ActivityPostResult,
