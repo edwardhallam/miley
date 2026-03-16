@@ -5,7 +5,7 @@
  * and determine which procedure (sequence of subroutines) should be executed.
  */
 
-import { SimpleCodexRunner } from "cyrus-codex-runner";
+import { SimpleClaudeRunner } from "cyrus-claude-runner";
 import {
 	type CyrusAgentSession,
 	createLogger,
@@ -13,9 +13,6 @@ import {
 	type ISimpleAgentRunner,
 	type RunnerType,
 } from "cyrus-core";
-import { SimpleCursorRunner } from "cyrus-cursor-runner";
-import { SimpleGeminiRunner } from "cyrus-gemini-runner";
-import { SimpleClaudeRunner } from "cyrus-simple-agent-runner";
 import { getProcedureForClassification, PROCEDURES } from "./registry.js";
 import type {
 	ProcedureAnalysisDecision,
@@ -44,25 +41,7 @@ export class ProcedureAnalyzer {
 		this.logger =
 			config.logger ?? createLogger({ component: "ProcedureAnalyzer" });
 
-		// Determine which runner to use
-		const runnerType = config.runnerType || "claude";
-
-		// Use runner-specific default models if not provided
-		const defaultModels: Record<
-			SimpleRunnerType,
-			{ model: string; fallback: string }
-		> = {
-			claude: { model: "haiku", fallback: "sonnet" },
-			gemini: {
-				model: "gemini-2.5-flash-lite",
-				fallback: "gemini-2.0-flash-exp",
-			},
-			codex: { model: "gpt-5", fallback: "gpt-5" },
-			cursor: { model: "gpt-5", fallback: "gpt-5" },
-		};
-		const defaults = defaultModels[runnerType];
-
-		// Create runner configuration
+		// Create runner configuration (Claude-only)
 		const runnerConfig = {
 			validResponses: [
 				"question",
@@ -76,22 +55,14 @@ export class ProcedureAnalyzer {
 				"release",
 			] as const,
 			cyrusHome: config.cyrusHome,
-			model: config.model || defaults.model,
-			fallbackModel: defaults.fallback,
+			model: config.model || "haiku",
+			fallbackModel: "sonnet",
 			systemPrompt: this.buildAnalysisSystemPrompt(),
 			maxTurns: 1,
 			timeoutMs: config.timeoutMs || 10000,
 		};
 
-		// Initialize the appropriate runner based on type
-		this.analysisRunner =
-			runnerType === "claude"
-				? new SimpleClaudeRunner(runnerConfig)
-				: runnerType === "gemini"
-					? new SimpleGeminiRunner(runnerConfig)
-					: runnerType === "codex"
-						? new SimpleCodexRunner(runnerConfig)
-						: new SimpleCursorRunner(runnerConfig);
+		this.analysisRunner = new SimpleClaudeRunner(runnerConfig);
 
 		// Load all predefined procedures from registry
 		this.loadPredefinedProcedures();

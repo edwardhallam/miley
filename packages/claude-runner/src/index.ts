@@ -21,6 +21,15 @@ export {
 	ClaudeMessageFormatter,
 	type IMessageFormatter,
 } from "./formatter.js";
+export { SimpleAgentRunner } from "./SimpleAgentRunner.js";
+export { SimpleClaudeRunner } from "./SimpleClaudeRunner.js";
+export {
+	InvalidResponseError,
+	NoResponseError,
+	SessionError,
+	SimpleAgentError,
+	SimpleAgentErrorCode,
+} from "./simple-agent-errors.js";
 export type {
 	APIAssistantMessage,
 	APIUserMessage,

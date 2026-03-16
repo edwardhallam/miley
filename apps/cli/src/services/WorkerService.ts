@@ -1,4 +1,3 @@
-import { getCyrusAppUrl } from "cyrus-cloudflare-tunnel-client";
 import type { EdgeWorkerConfig, Issue, RepositoryConfig } from "cyrus-core";
 import type { GitService } from "cyrus-edge-worker";
 import { EdgeWorker } from "cyrus-edge-worker";
@@ -92,7 +91,9 @@ export class WorkerService {
 		this.logger.info("📡 Config updater: Ready");
 		this.logger.raw("");
 		this.logger.info("Your Cyrus instance is ready to receive configuration.");
-		this.logger.info(`Complete setup at: ${getCyrusAppUrl()}/onboarding`);
+		this.logger.info(
+			`Complete setup at: ${process.env.CYRUS_APP_URL || "https://app.atcyrus.com"}/onboarding`,
+		);
 		this.logger.divider(70);
 	}
 
@@ -153,7 +154,7 @@ export class WorkerService {
 		if (process.env.LINEAR_CLIENT_ID) {
 			this.logger.info("Add a repository with: cyrus self-add-repo <git-url>");
 		} else {
-			const appUrl = getCyrusAppUrl();
+			const appUrl = process.env.CYRUS_APP_URL || "https://app.atcyrus.com";
 			this.logger.info(`Waiting for repository configuration from ${appUrl}`);
 			this.logger.info(`Add repositories at: ${appUrl}/repos`);
 		}

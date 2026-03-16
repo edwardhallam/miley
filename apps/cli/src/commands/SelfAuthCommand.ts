@@ -61,16 +61,8 @@ export class SelfAuthCommand extends BaseCommand {
 
 		try {
 			if (process.env.CLOUDFLARE_TOKEN) {
-				this.logger.info("Starting cloudflare tunnel...");
-
-				const { SharedApplicationServer } = await import("cyrus-edge-worker");
-				const sharedApplicationServer = new SharedApplicationServer(
-					this.callbackPort,
-					baseUrl,
-					false,
-				);
-				await sharedApplicationServer.startCloudflareTunnel(
-					process.env.CLOUDFLARE_TOKEN,
+				this.logger.info(
+					"CLOUDFLARE_TOKEN is set but tunnel client was removed. Manage tunnel externally.",
 				);
 			}
 

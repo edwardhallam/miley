@@ -29,22 +29,6 @@ export default defineConfig({
 				__dirname,
 				"../claude-runner/src/index.ts",
 			),
-			"cyrus-codex-runner": path.resolve(
-				__dirname,
-				"../codex-runner/src/index.ts",
-			),
-			"cyrus-cursor-runner": path.resolve(
-				__dirname,
-				"../cursor-runner/src/index.ts",
-			),
-			"cyrus-gemini-runner": path.resolve(
-				__dirname,
-				"../gemini-runner/src/index.ts",
-			),
-			"cyrus-simple-agent-runner": path.resolve(
-				__dirname,
-				"../simple-agent-runner/src/index.ts",
-			),
 			"cyrus-config-updater": path.resolve(
 				__dirname,
 				"../config-updater/src/index.ts",
@@ -53,10 +37,39 @@ export default defineConfig({
 				__dirname,
 				"../linear-event-transport/src/index.ts",
 			),
-			"cyrus-mcp-tools": path.resolve(__dirname, "../mcp-tools/src/index.ts"),
+			// Aliases for removed packages — separate stub files so vi.mock() works per-package
+			"cyrus-codex-runner": path.resolve(
+				__dirname,
+				"src/stubs/codex-runner.ts",
+			),
+			"cyrus-cursor-runner": path.resolve(
+				__dirname,
+				"src/stubs/cursor-runner.ts",
+			),
+			"cyrus-gemini-runner": path.resolve(
+				__dirname,
+				"src/stubs/gemini-runner.ts",
+			),
+			"cyrus-simple-agent-runner": path.resolve(
+				__dirname,
+				"src/stubs/simple-agent-runner.ts",
+			),
+			"cyrus-mcp-tools": path.resolve(__dirname, "src/stubs/mcp-tools.ts"),
 			"cyrus-cloudflare-tunnel-client": path.resolve(
 				__dirname,
-				"../cloudflare-tunnel-client/src/index.ts",
+				"src/stubs/cloudflare-tunnel-client.ts",
+			),
+			"cyrus-github-event-transport/test/fixtures": path.resolve(
+				__dirname,
+				"src/stubs/github-event-transport.ts",
+			),
+			"cyrus-github-event-transport": path.resolve(
+				__dirname,
+				"src/stubs/github-event-transport.ts",
+			),
+			"cyrus-slack-event-transport": path.resolve(
+				__dirname,
+				"src/stubs/slack-event-transport.ts",
 			),
 		},
 	},

@@ -1,5 +1,4 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { CloudflareTunnelClient } from "cyrus-cloudflare-tunnel-client";
 import { createLogger, type ILogger } from "cyrus-core";
 import Fastify, { type FastifyInstance, type FastifyRequest } from "fastify";
 
@@ -49,7 +48,6 @@ export class SharedApplicationServer {
 	private port: number;
 	private host: string;
 	private isListening = false;
-	private tunnelClient: CloudflareTunnelClient | null = null;
 	private skipTunnel: boolean;
 	private logger: ILogger;
 
@@ -122,72 +120,16 @@ export class SharedApplicationServer {
 				`Shared application server listening on http://${this.host}:${this.port}`,
 			);
 
-			// Start Cloudflare tunnel if CLOUDFLARE_TOKEN is set and tunnel is not skipped
+			// Cloudflare tunnel client removed — tunnel must be managed externally if needed
 			if (!this.skipTunnel && process.env.CLOUDFLARE_TOKEN) {
-				await this.startCloudflareTunnel(process.env.CLOUDFLARE_TOKEN);
+				this.logger.info(
+					"CLOUDFLARE_TOKEN is set but tunnel client was removed. Manage tunnel externally.",
+				);
 			}
 		} catch (error) {
 			this.isListening = false;
 			throw error;
 		}
-	}
-
-	/**
-	 * Start Cloudflare tunnel and wait for 4 'connected' events
-	 */
-	async startCloudflareTunnel(cloudflareToken: string): Promise<void> {
-		return new Promise<void>((resolve, reject) => {
-			let connectionCount = 0;
-			const requiredConnections = 4;
-
-			this.tunnelClient = new CloudflareTunnelClient(
-				cloudflareToken,
-				this.port,
-			);
-
-			// Listen for connection events (Cloudflare establishes 4 connections per tunnel)
-			this.tunnelClient.on("connected", () => {
-				connectionCount++;
-				this.logger.info(
-					`Cloudflare tunnel connection ${connectionCount}/${requiredConnections} established`,
-				);
-
-				if (connectionCount === requiredConnections) {
-					this.logger.info("Cloudflare tunnel fully connected and ready");
-					resolve();
-				}
-			});
-
-			// Listen for ready event to get tunnel URL
-			this.tunnelClient.on("ready", (tunnelUrl: string) => {
-				this.logger.info(`Cloudflare tunnel URL: ${tunnelUrl}`);
-			});
-
-			// Listen for error events
-			this.tunnelClient.on("error", (error: Error) => {
-				this.logger.error("Cloudflare tunnel error:", error);
-				reject(error);
-			});
-
-			// Listen for disconnect events
-			this.tunnelClient.on("disconnect", (reason: string) => {
-				this.logger.info(`Cloudflare tunnel disconnected: ${reason}`);
-			});
-
-			// Start the tunnel
-			this.tunnelClient.startTunnel().catch(reject);
-
-			// Timeout after 30 seconds
-			setTimeout(() => {
-				if (connectionCount < requiredConnections) {
-					reject(
-						new Error(
-							`Timeout waiting for Cloudflare tunnel (${connectionCount}/${requiredConnections} connections). This is usually caused by firewall/VPN/proxy blocking cloudflared. See troubleshooting: https://github.com/ceedaragents/cyrus/blob/main/docs/CLOUDFLARE_TUNNEL.md#troubleshooting`,
-						),
-					);
-				}
-			}, 30000);
-		});
 	}
 
 	/**
@@ -202,13 +144,6 @@ export class SharedApplicationServer {
 			);
 		}
 		this.pendingApprovals.clear();
-
-		// Stop Cloudflare tunnel if running
-		if (this.tunnelClient) {
-			this.tunnelClient.disconnect();
-			this.tunnelClient = null;
-			this.logger.info("Cloudflare tunnel stopped");
-		}
 
 		if (this.app && this.isListening) {
 			await this.app.close();

@@ -1,4 +1,3 @@
-import { getCyrusAppUrl } from "cyrus-cloudflare-tunnel-client";
 import type { EdgeConfig } from "cyrus-core";
 import { BaseCommand } from "./ICommand.js";
 
@@ -79,7 +78,7 @@ export class StartCommand extends BaseCommand {
 				this.logger.info("\n💡 Cloudflare tunnel requires:");
 				this.logger.info("   - CLOUDFLARE_TOKEN environment variable");
 				this.logger.info(
-					`   - Get your token from: ${getCyrusAppUrl()}/onboarding`,
+					`   - Get your token from: ${process.env.CYRUS_APP_URL || "https://app.atcyrus.com"}/onboarding`,
 				);
 			} else if (error.message?.includes("Failed to connect")) {
 				this.logger.info("\n💡 Connection issues can occur when:");

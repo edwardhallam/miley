@@ -1,7 +1,9 @@
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { getCyrusAppUrl } from "cyrus-cloudflare-tunnel-client";
 import { BaseCommand } from "./ICommand.js";
+
+const getCyrusAppUrl = () =>
+	process.env.CYRUS_APP_URL || "https://app.atcyrus.com";
 
 /**
  * Auth command - authenticate with Cyrus Pro plan using auth key
@@ -28,16 +30,27 @@ export class AuthCommand extends BaseCommand {
 		this.logDivider();
 
 		try {
-			// Import ConfigApiClient
-			const { ConfigApiClient } = await import(
-				"cyrus-cloudflare-tunnel-client"
-			);
-
 			// Call the config API to get credentials
 			console.log("Validating auth key...");
-			const configResponse = await ConfigApiClient.getConfig(authKey);
+			const configUrl = `${getCyrusAppUrl()}/api/config?auth_key=${encodeURIComponent(authKey)}`;
+			const response = await fetch(configUrl);
+			if (!response.ok) {
+				const errorText = await response.text();
+				throw new Error(
+					`Config API request failed: ${response.status} ${response.statusText} - ${errorText}`,
+				);
+			}
+			const configResponse = (await response.json()) as {
+				success: boolean;
+				config?: { cloudflareToken: string; apiKey: string };
+				error?: string;
+			};
 
-			if (!ConfigApiClient.isValid(configResponse)) {
+			if (
+				!configResponse.success ||
+				!configResponse.config?.cloudflareToken ||
+				!configResponse.config?.apiKey
+			) {
 				this.logError("Authentication failed");
 				console.error(configResponse.error || "Invalid response from server");
 				console.log("\nPlease verify your auth key is correct.");

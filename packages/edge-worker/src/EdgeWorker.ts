@@ -11,7 +11,6 @@ import type {
 	SDKMessage,
 } from "cyrus-claude-runner";
 import { ClaudeRunner } from "cyrus-claude-runner";
-import { CodexRunner } from "cyrus-codex-runner";
 import { ConfigUpdater } from "cyrus-config-updater";
 import type {
 	AgentActivityCreateInput,
@@ -64,43 +63,11 @@ import {
 	requireLinearWorkspaceId,
 	resolvePath,
 } from "cyrus-core";
-import { CursorRunner } from "cyrus-cursor-runner";
-import { GeminiRunner } from "cyrus-gemini-runner";
-import {
-	extractCommentAuthor,
-	extractCommentBody,
-	extractCommentId,
-	extractCommentUrl,
-	extractPRBaseBranchRef,
-	extractPRBranchRef,
-	extractPRNumber,
-	extractPRTitle,
-	extractRepoFullName,
-	extractRepoName,
-	extractRepoOwner,
-	extractSessionKey,
-	GitHubCommentService,
-	GitHubEventTransport,
-	type GitHubWebhookEvent,
-	isCommentOnPullRequest,
-	isIssueCommentPayload,
-	isPullRequestReviewCommentPayload,
-	isPullRequestReviewPayload,
-	stripMention,
-} from "cyrus-github-event-transport";
 import {
 	LinearEventTransport,
 	LinearIssueTrackerService,
 	type LinearOAuthConfig,
 } from "cyrus-linear-event-transport";
-import {
-	type CyrusToolsOptions,
-	createCyrusToolsServer,
-} from "cyrus-mcp-tools";
-import {
-	SlackEventTransport,
-	type SlackWebhookEvent,
-} from "cyrus-slack-event-transport";
 import { Sessions, streamableHttp } from "fastify-mcp";
 import { ActivityPoster } from "./ActivityPoster.js";
 import { AgentSessionManager } from "./AgentSessionManager.js";
@@ -129,6 +96,32 @@ import {
 	type RepositoryRouterDeps,
 } from "./RepositoryRouter.js";
 import { RunnerSelectionService } from "./RunnerSelectionService.js";
+import {
+	type CyrusToolsOptions,
+	createCyrusToolsServer,
+	extractCommentAuthor,
+	extractCommentBody,
+	extractCommentId,
+	extractCommentUrl,
+	extractPRBaseBranchRef,
+	extractPRBranchRef,
+	extractPRNumber,
+	extractPRTitle,
+	extractRepoFullName,
+	extractRepoName,
+	extractRepoOwner,
+	extractSessionKey,
+	GitHubCommentService,
+	GitHubEventTransport,
+	type GitHubWebhookEvent,
+	isCommentOnPullRequest,
+	isIssueCommentPayload,
+	isPullRequestReviewCommentPayload,
+	isPullRequestReviewPayload,
+	SlackEventTransport,
+	type SlackWebhookEvent,
+	stripMention,
+} from "./removed-package-stubs.js";
 import { SharedApplicationServer } from "./SharedApplicationServer.js";
 import { SlackChatAdapter } from "./SlackChatAdapter.js";
 import type { IActivitySink } from "./sinks/IActivitySink.js";
@@ -3955,18 +3948,12 @@ ${taskSection}`;
 		runnerType: "claude" | "gemini" | "codex" | "cursor",
 		config: AgentRunnerConfig,
 	): IAgentRunner {
-		switch (runnerType) {
-			case "claude":
-				return new ClaudeRunner(config);
-			case "gemini":
-				return new GeminiRunner(config);
-			case "codex":
-				return new CodexRunner(config);
-			case "cursor":
-				return new CursorRunner(config);
-			default:
-				throw new Error(`Unknown runner type: ${runnerType satisfies never}`);
+		if (runnerType !== "claude") {
+			this.logger.warn(
+				`Runner type "${runnerType}" requested but only Claude is supported. Falling back to Claude.`,
+			);
 		}
+		return new ClaudeRunner(config);
 	}
 
 	/**

@@ -4,6 +4,8 @@ import { TEST_CYRUS_HOME } from "./test-dirs.js";
 // Mock dependencies BEFORE imports
 vi.mock("cyrus-claude-runner", () => ({
 	ClaudeRunner: vi.fn(),
+	SimpleClaudeRunner: vi.fn(),
+	SimpleAgentRunner: vi.fn(),
 	getSafeTools: vi.fn(() => [
 		"Read",
 		"Edit",

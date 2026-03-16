@@ -1,13 +1,47 @@
 import type { IAgentRunner, ILogger } from "cyrus-core";
 import { createLogger } from "cyrus-core";
-import {
-	SlackMessageService,
-	SlackReactionService,
-	type SlackThreadMessage,
-	type SlackWebhookEvent,
-	stripMention as stripSlackMention,
-} from "cyrus-slack-event-transport";
 import type { ChatPlatformAdapter } from "./ChatSessionHandler.js";
+
+// Minimal type stubs for Slack support (slack-event-transport package removed)
+interface SlackThreadMessage {
+	user?: string;
+	bot_id?: string;
+	ts: string;
+	text: string;
+}
+
+export interface SlackWebhookEvent {
+	eventId: string;
+	slackBotToken?: string;
+	payload: {
+		text: string;
+		channel: string;
+		user: string;
+		ts: string;
+		thread_ts?: string;
+	};
+}
+
+function stripSlackMention(text: string): string {
+	return text.replace(/<@[A-Z0-9]+>/g, "").trim();
+}
+
+// Stub services — Slack functionality is removed but the adapter compiles
+class SlackMessageService {
+	async getIdentity(_token: string): Promise<{ bot_id: string | undefined }> {
+		return { bot_id: undefined };
+	}
+	async fetchThreadMessages(
+		_opts: Record<string, unknown>,
+	): Promise<SlackThreadMessage[]> {
+		return [];
+	}
+	async postMessage(_opts: Record<string, unknown>): Promise<void> {}
+}
+
+class SlackReactionService {
+	async addReaction(_opts: Record<string, unknown>): Promise<void> {}
+}
 
 /**
  * Slack implementation of ChatPlatformAdapter.
