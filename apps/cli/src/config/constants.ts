@@ -5,7 +5,7 @@
 /**
  * Default server port for OAuth callbacks and webhooks
  */
-export const DEFAULT_SERVER_PORT = 3456;
+export const DEFAULT_SERVER_PORT = 3457;
 
 /**
  * Parse a port number from string with validation
