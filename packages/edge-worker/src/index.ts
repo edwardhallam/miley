@@ -29,6 +29,12 @@ export type { SerializedGlobalRegistryState } from "./GlobalSessionRegistry.js";
 export { GlobalSessionRegistry } from "./GlobalSessionRegistry.js";
 export { buildInitialPrompt } from "./prompt-assembly/buildInitialPrompt.js";
 export { RepositoryRouter } from "./RepositoryRouter.js";
+export type {
+	SessionConfig,
+	SessionConfigurator,
+} from "./SessionConfigurator.js";
+// Session configurator extensibility
+export { DefaultConfigurator } from "./SessionConfigurator.js";
 export { SharedApplicationServer } from "./SharedApplicationServer.js";
 export type {
 	ActivityPostOptions,

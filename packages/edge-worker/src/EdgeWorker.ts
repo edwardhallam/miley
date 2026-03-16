@@ -111,6 +111,10 @@ import {
 	type MileyToolsOptions,
 	stripMention,
 } from "./removed-package-stubs.js";
+import {
+	DefaultConfigurator,
+	type SessionConfigurator,
+} from "./SessionConfigurator.js";
 import { SharedApplicationServer } from "./SharedApplicationServer.js";
 import type { IActivitySink } from "./sinks/IActivitySink.js";
 import { LinearActivitySink } from "./sinks/LinearActivitySink.js";
@@ -178,6 +182,8 @@ export class EdgeWorker extends EventEmitter {
 	private runnerSelectionService: RunnerSelectionService;
 	private activityPoster: ActivityPoster;
 	private configManager: ConfigManager;
+	/** Extensibility point for per-session configuration (tools, instructions). */
+	private configurator: SessionConfigurator;
 	private readonly mileyToolsMcpEndpoint = "/mcp/miley-tools";
 	private mileyToolsMcpRegistered = false;
 	private mileyToolsMcpContexts = new Map<string, MileyToolsMcpContextEntry>();
@@ -196,6 +202,7 @@ export class EdgeWorker extends EventEmitter {
 		this.config = config;
 		this.mileyHome = config.mileyHome;
 		this.logger = createLogger({ component: "EdgeWorker" });
+		this.configurator = new DefaultConfigurator();
 		this.persistenceManager = new PersistenceManager(
 			join(this.mileyHome, "state"),
 		);
@@ -2664,6 +2671,21 @@ ${taskSection}`;
 		// Fetch labels for runner selection / model override
 		const labels = await this.fetchIssueLabels(fullIssue);
 
+		// Run SessionConfigurator to derive per-session config (instructions, tool policy)
+		const sessionConfig = this.configurator.configure(
+			{
+				title: fullIssue.title,
+				description: fullIssue.description || "",
+				labels,
+			},
+			primaryRepo,
+		);
+		// Apply configurator output — override appendInstruction on the repo used for prompt assembly
+		const configuredRepo: RepositoryConfig = {
+			...primaryRepo,
+			appendInstruction: sessionConfig.appendInstruction,
+		};
+
 		// Build and start session with initial prompt
 		log.info(`Building initial prompt for issue ${fullIssue.identifier}`);
 		try {
@@ -2672,7 +2694,7 @@ ${taskSection}`;
 				session,
 				fullIssue,
 				repositories,
-				repository: primaryRepo,
+				repository: configuredRepo,
 				userComment: commentBody || "",
 				attachmentManifest: attachmentResult.manifest,
 				guidance: guidance || undefined,
@@ -2690,7 +2712,7 @@ ${taskSection}`;
 			// System prompt comes from repo appendInstruction (via determineSystemPromptFromLabels)
 			const systemPromptResult = await this.determineSystemPromptFromLabels(
 				labels,
-				primaryRepo,
+				configuredRepo,
 			);
 
 			// Build allowed/disallowed tools (no longer prompt-type-dependent)
