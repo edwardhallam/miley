@@ -27,6 +27,7 @@ export type { CreateGitWorktreeOptions } from "./GitService.js";
 export { GitService } from "./GitService.js";
 export type { SerializedGlobalRegistryState } from "./GlobalSessionRegistry.js";
 export { GlobalSessionRegistry } from "./GlobalSessionRegistry.js";
+export { buildInitialPrompt } from "./prompt-assembly/buildInitialPrompt.js";
 export { RepositoryRouter } from "./RepositoryRouter.js";
 export { SharedApplicationServer } from "./SharedApplicationServer.js";
 export type {

@@ -19,7 +19,6 @@ import type {
 	AgentRunnerConfig,
 	AgentSessionCreatedWebhook,
 	AgentSessionPromptedWebhook,
-	BaseBranchResolution,
 	ContentUpdateMessage,
 	EdgeWorkerConfig,
 	GuidanceRule,
@@ -76,8 +75,8 @@ import { AttachmentService } from "./AttachmentService.js";
 import { ConfigManager, type RepositoryChanges } from "./ConfigManager.js";
 import { GitService } from "./GitService.js";
 import { GlobalSessionRegistry } from "./GlobalSessionRegistry.js";
+import { buildInitialPrompt } from "./prompt-assembly/buildInitialPrompt.js";
 import type {
-	IssueContextResult,
 	PromptAssembly,
 	PromptAssemblyInput,
 	PromptComponent,
@@ -2233,19 +2232,34 @@ ${taskSection}`;
 	 */
 	private buildIssueUpdatePrompt(
 		issueIdentifier: string,
-		_issueData: {
+		issueData: {
 			title: string;
 			description?: string | null;
 			attachments?: unknown;
 		},
-		_updatedFrom: {
+		updatedFrom: {
 			title?: string;
 			description?: string;
 			attachments?: unknown;
 		},
 	): string {
-		// TODO: Task 7b — reimplement without PromptBuilder
-		return `Issue ${issueIdentifier} was updated. Review the current issue state.`;
+		const parts: string[] = [
+			`Issue ${issueIdentifier} has been updated. Review the changes below and evaluate whether they affect your current implementation or action plan.`,
+		];
+
+		if (updatedFrom.title !== undefined) {
+			parts.push(
+				`<field_change field="title">\n  <previous>${updatedFrom.title}</previous>\n  <current>${issueData.title}</current>\n</field_change>`,
+			);
+		}
+
+		if (updatedFrom.description !== undefined) {
+			parts.push(
+				`<field_change field="description">\n  <previous>${updatedFrom.description || "(empty)"}</previous>\n  <current>${issueData.description || "(empty)"}</current>\n</field_change>`,
+			);
+		}
+
+		return parts.join("\n\n");
 	}
 
 	/**
@@ -2640,7 +2654,6 @@ ${taskSection}`;
 			allowedDirectories,
 		} = sessionData;
 
-		// Initialize procedure metadata using intelligent routing
 		if (!session.metadata) {
 			session.metadata = {};
 		}
@@ -2648,116 +2661,75 @@ ${taskSection}`;
 		// Post ephemeral "Routing..." thought
 		await agentSessionManager.postAnalyzingThought(sessionId);
 
-		// Fetch labels early
+		// Fetch labels for runner selection / model override
 		const labels = await this.fetchIssueLabels(fullIssue);
 
-		// Classification/procedure routing removed — Task 7b will wire up the simplified path
-		// For now, proceed directly to prompt assembly
-
-		// Build and start Claude with initial prompt using full issue (streaming mode)
+		// Build and start session with initial prompt
 		log.info(`Building initial prompt for issue ${fullIssue.identifier}`);
 		try {
-			// Create input for unified prompt assembly
+			// Assemble the user prompt via the unified prompt assembly pipeline
 			const input: PromptAssemblyInput = {
 				session,
 				fullIssue,
 				repositories,
 				repository: primaryRepo,
-				userComment: commentBody || "", // Empty for delegation, present for mentions
+				userComment: commentBody || "",
 				attachmentManifest: attachmentResult.manifest,
 				guidance: guidance || undefined,
 				agentSession,
 				labels,
 				isNewSession: true,
-				isStreaming: false, // Not yet streaming
+				isStreaming: false,
 				isMentionTriggered: isMentionTriggered || false,
 				isLabelBasedPromptRequested: isLabelBasedPromptRequested || false,
 				resolvedBaseBranches: sessionData.workspace.resolvedBaseBranches,
 				linearWorkspaceId,
 			};
-
-			// Use unified prompt assembly
 			const assembly = await this.assemblePrompt(input);
 
-			// Get systemPromptVersion for tracking (TODO: add to PromptAssembly metadata)
-			let systemPromptVersion: string | undefined;
-			let promptType:
-				| "debugger"
-				| "builder"
-				| "scoper"
-				| "orchestrator"
-				| "graphite-orchestrator"
-				| undefined;
-
-			if (!isMentionTriggered || isLabelBasedPromptRequested) {
-				const systemPromptResult = await this.determineSystemPromptFromLabels(
-					labels,
-					primaryRepo,
-				);
-				systemPromptVersion = systemPromptResult?.version;
-				promptType = systemPromptResult?.type;
-
-				// Post thought about system prompt selection
-				if (assembly.systemPrompt) {
-					await this.postSystemPromptSelectionThought(
-						sessionId,
-						labels,
-						linearWorkspaceId,
-						primaryRepo.id,
-					);
-				}
-			}
-
-			// Build allowed tools list
-			const allowedTools = this.buildAllowedTools(repositories, promptType);
-			const disallowedTools = this.buildDisallowedTools(
-				repositories,
-				promptType,
+			// System prompt comes from repo appendInstruction (via determineSystemPromptFromLabels)
+			const systemPromptResult = await this.determineSystemPromptFromLabels(
+				labels,
+				primaryRepo,
 			);
+
+			// Build allowed/disallowed tools (no longer prompt-type-dependent)
+			const allowedTools = this.buildAllowedTools(repositories);
+			const disallowedTools = this.buildDisallowedTools(repositories);
 
 			log.debug(
 				`Configured allowed tools for ${fullIssue.identifier}:`,
 				allowedTools,
 			);
-			if (disallowedTools.length > 0) {
-				log.debug(
-					`Configured disallowed tools for ${fullIssue.identifier}:`,
-					disallowedTools,
-				);
-			}
 
-			// Create agent runner with system prompt from assembly
+			// Create agent runner — appendInstruction is delivered via systemPrompt param
 			const { config: runnerConfig, runnerType } = this.buildAgentRunnerConfig(
 				session,
 				primaryRepo,
 				sessionId,
-				assembly.systemPrompt,
+				systemPromptResult?.prompt,
 				allowedTools,
 				allowedDirectories,
 				disallowedTools,
 				undefined, // resumeSessionId
-				labels, // Pass labels for runner selection and model override
-				fullIssue.description || undefined, // Description tags can override label selectors
+				labels,
+				fullIssue.description || undefined,
 				undefined, // maxTurns
-				undefined, // singleTurn flag
-				undefined, // disallowAllTools flag
+				undefined, // singleTurn
+				undefined, // disallowAllTools
 				undefined, // mcpOptions
 				linearWorkspaceId,
 			);
 
 			log.debug(
-				`Label-based runner selection for new session: ${runnerType} (session ${sessionId})`,
+				`Runner selection for new session: ${runnerType} (session ${sessionId})`,
 			);
 
 			const runner = this.createRunnerForType(runnerType, runnerConfig);
-
-			// Store runner by comment ID
 			agentSessionManager.addAgentRunner(sessionId, runner);
 
-			// Save state after mapping changes
 			await this.savePersistedState();
 
-			// Emit events using full issue (core Issue type)
 			this.emit("session:started", fullIssue.id, fullIssue, primaryRepo.id);
 			this.config.handlers?.onSessionStart?.(
 				fullIssue.id,
@@ -2765,24 +2737,11 @@ ${taskSection}`;
 				primaryRepo.id,
 			);
 
-			// Update runner with version information (if available)
-			// Note: updatePromptVersions is specific to ClaudeRunner
-			if (
-				systemPromptVersion &&
-				"updatePromptVersions" in runner &&
-				typeof runner.updatePromptVersions === "function"
-			) {
-				runner.updatePromptVersions({
-					systemPromptVersion,
-				});
-			}
-
-			// Log metadata for debugging
 			log.debug(
-				`Initial prompt built successfully - components: ${assembly.metadata.components.join(", ")}, type: ${assembly.metadata.promptType}, length: ${assembly.userPrompt.length} characters`,
+				`Initial prompt built — components: ${assembly.metadata.components.join(", ")}, type: ${assembly.metadata.promptType}, length: ${assembly.userPrompt.length} chars`,
 			);
 
-			// Start session - use streaming mode if supported for ability to add messages later
+			// Start session (streaming mode if supported, for mid-session message injection)
 			if (runner.supportsStreamingInput && runner.startStreaming) {
 				log.debug(`Starting streaming session`);
 				const sessionInfo = await runner.startStreaming(assembly.userPrompt);
@@ -2792,8 +2751,6 @@ ${taskSection}`;
 				const sessionInfo = await runner.start(assembly.userPrompt);
 				log.debug(`Non-streaming session started: ${sessionInfo.sessionId}`);
 			}
-			// Note: AgentSessionManager will be initialized automatically when the first system message
-			// is received via handleClaudeMessage() callback
 		} catch (error) {
 			log.error(`Error in prompt building/starting:`, error);
 			throw error;
@@ -3455,41 +3412,54 @@ ${taskSection}`;
 	}
 
 	/**
-	 * Determine system prompt based on issue labels and repository configuration
+	 * Get the repository-level system prompt (appendInstruction).
+	 * Label-based prompt selection was removed with the classification system.
+	 * The appendInstruction from repo config is passed through as the system prompt.
 	 */
 	private async determineSystemPromptFromLabels(
 		_labels: string[],
-		_repository: RepositoryConfig,
+		repository: RepositoryConfig,
 	): Promise<
 		| {
 				prompt: string;
 				version?: string;
-				type?:
-					| "debugger"
-					| "builder"
-					| "scoper"
-					| "orchestrator"
-					| "graphite-orchestrator";
+				type?: undefined;
 		  }
 		| undefined
 	> {
-		// TODO: Task 7b — reimplement system prompt selection without PromptBuilder
+		if (repository.appendInstruction) {
+			return { prompt: repository.appendInstruction };
+		}
 		return undefined;
 	}
 
 	/**
-	 * Build prompt for mention-triggered sessions
+	 * Build prompt for mention-triggered sessions.
+	 * Uses the comment body from the agent session as the primary content,
+	 * with issue context for reference.
 	 */
 	private async buildMentionPrompt(
 		issue: Issue,
-		_agentSession: WebhookAgentSession,
+		agentSession: WebhookAgentSession,
 		_attachmentManifest: string = "",
 		_guidance?: GuidanceRule[],
 	): Promise<{ prompt: string; version?: string }> {
-		// TODO: Task 7b — reimplement without PromptBuilder
-		return {
-			prompt: `Respond to the mention on issue ${issue.identifier}: ${issue.title}`,
-		};
+		const commentBody = agentSession.comment?.body || "";
+		const parts: string[] = [
+			`You were mentioned on issue ${issue.identifier}: ${issue.title}`,
+		];
+
+		if (issue.description) {
+			parts.push(
+				`<issue_description>\n${issue.description}\n</issue_description>`,
+			);
+		}
+
+		if (commentBody) {
+			parts.push(`<mention_comment>\n${commentBody}\n</mention_comment>`);
+		}
+
+		return { prompt: parts.join("\n\n") };
 	}
 
 	/**
@@ -4280,41 +4250,38 @@ ${taskSection}`;
 	}
 
 	/**
-	 * Build prompt for new session - includes issue context, subroutine prompt, and user comment
+	 * Build prompt for new session — simplified direct path.
+	 *
+	 * The user prompt uses buildInitialPrompt() for the issue context,
+	 * with appendInstruction delivered via the system prompt (appendSystemPrompt
+	 * in the runner config). User comments and guidance are appended to the
+	 * user prompt when present.
 	 */
 	private async buildNewSessionPrompt(
 		input: PromptAssemblyInput,
 	): Promise<PromptAssembly> {
 		const components: PromptComponent[] = [];
 		const parts: string[] = [];
-
-		// 1. Determine system prompt from labels
-		// TODO: Task 7b — reimplement system prompt selection
 		const repositories = input.repositories ?? [input.repository];
-		const systemPrompt = "";
+		const primaryRepo = repositories[0]!;
 		const promptType = this.determinePromptType(input, false);
 
-		// 2. Build issue context
-		const issueContext = await this.buildIssueContextForPromptAssembly(
-			input.fullIssue,
-			repositories,
-			promptType,
-			input.attachmentManifest,
-			input.guidance,
-			input.agentSession,
-			input.resolvedBaseBranches,
-		);
-
-		parts.push(issueContext.prompt);
+		// 1. Build issue context via the simplified prompt builder
+		if (input.isMentionTriggered) {
+			const mentionResult = await this.buildMentionPrompt(
+				input.fullIssue,
+				input.agentSession!,
+				input.attachmentManifest,
+				input.guidance,
+			);
+			parts.push(mentionResult.prompt);
+		} else {
+			parts.push(buildInitialPrompt(input.fullIssue, primaryRepo));
+		}
 		components.push("issue-context");
 
-		// Subroutine prompts removed (classification/procedure system removed)
-		const subroutineName: string | undefined = undefined;
-
-		// 5. Add user comment (if present)
-		// Skip for mention-triggered prompts since the comment is already in the mention block
+		// 2. Add user comment (if present and not a mention — mentions include comment inline)
 		if (input.userComment.trim() && !input.isMentionTriggered) {
-			// If we have author/timestamp metadata, include it for multi-player context
 			if (input.commentAuthor || input.commentTimestamp) {
 				const author = input.commentAuthor || "Unknown";
 				const timestamp = input.commentTimestamp || new Date().toISOString();
@@ -4326,23 +4293,23 @@ ${input.userComment}
   </content>
 </user_comment>`);
 			} else {
-				// Legacy format without metadata
 				parts.push(`<user_comment>\n${input.userComment}\n</user_comment>`);
 			}
 			components.push("user-comment");
 		}
 
-		// 6. Add guidance rules (if present)
+		// 3. Add guidance rules (if present)
 		if (input.guidance && input.guidance.length > 0) {
 			components.push("guidance-rules");
 		}
 
+		// System prompt is set via appendInstruction in the runner config,
+		// not assembled here. Pass empty string so callers don't need to handle undefined.
 		return {
-			systemPrompt,
+			systemPrompt: "",
 			userPrompt: parts.join("\n\n"),
 			metadata: {
 				components,
-				subroutineName,
 				promptType,
 				isNewSession: true,
 				isStreaming: false,
@@ -4405,39 +4372,6 @@ ${input.userComment}
 			return "label-based";
 		}
 		return "fallback";
-	}
-
-	/**
-	 * Adapter method for prompt assembly - routes to appropriate issue context builder
-	 */
-	private async buildIssueContextForPromptAssembly(
-		issue: Issue,
-		_repositories: RepositoryConfig[],
-		promptType: PromptType,
-		_attachmentManifest?: string,
-		_guidance?: GuidanceRule[],
-		agentSession?: WebhookAgentSession,
-		_resolvedBaseBranches?: Record<string, BaseBranchResolution>,
-	): Promise<IssueContextResult> {
-		// Delegate to appropriate builder based on promptType
-		if (promptType === "mention") {
-			if (!agentSession) {
-				throw new Error(
-					"agentSession is required for mention-triggered prompts",
-				);
-			}
-			return this.buildMentionPrompt(
-				issue,
-				agentSession,
-				_attachmentManifest,
-				_guidance,
-			);
-		}
-		// TODO: Task 7b — reimplement label-based and fallback prompt builders
-		// For now, return a basic issue context
-		return {
-			prompt: `Issue ${issue.identifier}: ${issue.title}\n\n${issue.description || "No description."}`,
-		};
 	}
 
 	/**
@@ -5031,27 +4965,11 @@ ${input.userComment}
 	}
 
 	/**
-	 * Re-route procedure for a session (stub — classification/procedure system removed).
-	 * TODO: Task 7b will replace this with simplified session launch path.
-	 */
-	private async rerouteProcedureForSession(
-		_session: MileyAgentSession,
-		_sessionId: string,
-		_agentSessionManager: AgentSessionManager,
-		_promptBody: string,
-		_repository: RepositoryConfig,
-		_linearWorkspaceId: string,
-	): Promise<void> {
-		// No-op: classification/procedure routing removed
-	}
-
-	/**
-	 * Handle prompt with streaming check - centralized logic for all input types
+	 * Handle prompt with streaming check - centralized logic for all input types.
 	 *
-	 * This method implements the unified pattern for handling prompts:
-	 * 1. Check if runner is actively streaming
-	 * 2. Route procedure if NOT streaming (resets currentSubroutine)
-	 * 3. Add to stream if streaming, OR resume session if not
+	 * Two paths:
+	 * 1. Runner is actively streaming → inject message into the stream
+	 * 2. Runner is not running → resume/create session
 	 *
 	 * @param session The Miley agent session
 	 * @param repository Repository configuration
@@ -5079,26 +4997,7 @@ ${input.userComment}
 		commentTimestamp?: string,
 	): Promise<boolean> {
 		const log = this.logger.withContext({ sessionId });
-		// Check if runner is actively running before routing
 		const existingRunner = session.agentRunner;
-		const isRunning = existingRunner?.isRunning() || false;
-
-		// Always route procedure for new input, UNLESS actively running
-		if (!isRunning) {
-			await this.rerouteProcedureForSession(
-				session,
-				sessionId,
-				agentSessionManager,
-				promptBody,
-				repository,
-				linearWorkspaceId,
-			);
-			log.debug(`Routed procedure for ${logContext}`);
-		} else {
-			log.debug(
-				`Skipping routing for ${sessionId} (${logContext}) - runner is actively running`,
-			);
-		}
 
 		// Handle running case - add message to existing stream (if supported)
 		if (
@@ -5139,23 +5038,6 @@ ${input.userComment}
 		);
 
 		return false; // Session was resumed
-	}
-
-	/**
-	 * Post thought about system prompt selection based on labels
-	 */
-	private async postSystemPromptSelectionThought(
-		sessionId: string,
-		labels: string[],
-		linearWorkspaceId: string,
-		repositoryId: string,
-	): Promise<void> {
-		return this.activityPoster.postSystemPromptSelectionThought(
-			sessionId,
-			labels,
-			linearWorkspaceId,
-			repositoryId,
-		);
 	}
 
 	/**
@@ -5242,18 +5124,16 @@ ${input.userComment}
 				!hasCodexSession &&
 				!hasCursorSession);
 
-		// Fetch system prompt based on labels
-
+		// System prompt comes from repo appendInstruction
 		const systemPromptResult = await this.determineSystemPromptFromLabels(
 			labels,
 			repository,
 		);
 		const systemPrompt = systemPromptResult?.prompt;
-		const promptType = systemPromptResult?.type;
 
 		// Build allowed tools list
-		const allowedTools = this.buildAllowedTools(repository, promptType);
-		const disallowedTools = this.buildDisallowedTools(repository, promptType);
+		const allowedTools = this.buildAllowedTools(repository);
+		const disallowedTools = this.buildDisallowedTools(repository);
 
 		// Set up attachments directory
 		const workspaceFolderName = basename(session.workspace.path);
