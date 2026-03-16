@@ -364,6 +364,132 @@ export function migrateEdgeConfig(
 	};
 }
 
+// ---------------------------------------------------------------------------
+// NEW Miley config schemas (replacing EdgeConfig for single-user self-hosted)
+// ---------------------------------------------------------------------------
+
+/**
+ * Top-level Linear credentials block.
+ * Single workspace — no longer a per-repo or record-keyed structure.
+ */
+export const MileyLinearConfigSchema = z.object({
+	/** Linear OAuth access token */
+	token: z.string(),
+	/** Linear workspace ID */
+	workspaceId: z.string(),
+	/** Human-readable workspace name (e.g., "edwardhallam") */
+	workspaceName: z.string(),
+});
+
+/**
+ * Server configuration block.
+ */
+export const MileyServerConfigSchema = z.object({
+	/** Port the server listens on */
+	port: z.number(),
+	/** Host the server binds to (e.g., "0.0.0.0" or "localhost") */
+	host: z.string(),
+});
+
+/**
+ * Repository configuration for Miley (simplified from RepositoryConfigSchema).
+ *
+ * Key changes from the old RepositoryConfigSchema:
+ * - `preferLocalBranch` added (default false) — when true, work on local branch instead of worktree
+ * - `workspaceBaseDir` removed — worktree path computed as repositoryPath + /.worktrees/
+ * - `labelPrompts` removed — classification system is gone
+ * - Linear credentials removed — hoisted to top-level `linear` block
+ * - `promptTemplatePath` removed — always uses built-in template
+ */
+export const MileyRepositoryConfigSchema = z.object({
+	// Repository identification
+	id: z.string(),
+	name: z.string(),
+
+	// Git configuration
+	repositoryPath: z.string(),
+	baseBranch: z.string(),
+	githubUrl: z.string().optional(),
+
+	/** Whether to work on a local branch instead of creating a git worktree. Defaults to false. */
+	preferLocalBranch: z.boolean().default(false),
+
+	// Linear configuration (optional — repos may operate without Linear)
+	linearWorkspaceId: z.string().optional(),
+	teamKeys: z.array(z.string()).optional(),
+	routingLabels: z.array(z.string()).optional(),
+	projectKeys: z.array(z.string()).optional(),
+
+	// Optional settings
+	isActive: z.boolean().optional(),
+	allowedTools: z.array(z.string()).optional(),
+	disallowedTools: z.array(z.string()).optional(),
+	mcpConfigPath: z.union([z.string(), z.array(z.string())]).optional(),
+	appendInstruction: z.string().optional(),
+	model: z.string().optional(),
+	fallbackModel: z.string().optional(),
+
+	// Repository-specific user access control
+	userAccessControl: UserAccessControlConfigSchema.optional(),
+});
+
+/**
+ * Miley configuration — the new top-level config schema for self-hosted single-user mode.
+ *
+ * Replaces EdgeConfig. Key differences:
+ * - `server` block at top level (port + host)
+ * - `linear` block at top level (single workspace credentials)
+ * - No `linearWorkspaces` record (single workspace)
+ * - No `ngrokAuthToken`, `stripeCustomerId` (SaaS fields removed)
+ * - No `promptDefaults`, `issueUpdateTrigger` (classification removed)
+ * - No `linearWorkspaceSlug`, `defaultModel`, `defaultFallbackModel` (legacy fields removed)
+ */
+export const MileyConfigSchema = z.object({
+	/** Server configuration (port and host) */
+	server: MileyServerConfigSchema,
+
+	/** Linear workspace credentials */
+	linear: MileyLinearConfigSchema,
+
+	/** Array of repository configurations */
+	repositories: z.array(MileyRepositoryConfigSchema),
+
+	/** Default Claude model to use across all repositories */
+	claudeDefaultModel: z.string().optional(),
+
+	/** Default Claude fallback model if primary is unavailable */
+	claudeDefaultFallbackModel: z.string().optional(),
+
+	/** Default Gemini model to use across all repositories */
+	geminiDefaultModel: z.string().optional(),
+
+	/** Default Codex model to use across all repositories */
+	codexDefaultModel: z.string().optional(),
+
+	/** Default runner/harness type */
+	defaultRunner: RunnerTypeSchema.optional(),
+
+	/** Optional path to global setup script */
+	global_setup_script: z.string().optional(),
+
+	/** Default tools to allow across all repositories */
+	defaultAllowedTools: z.array(z.string()).optional(),
+
+	/** Tools to explicitly disallow across all repositories */
+	defaultDisallowedTools: z.array(z.string()).optional(),
+
+	/** Global user access control settings */
+	userAccessControl: UserAccessControlConfigSchema.optional(),
+});
+
+/**
+ * Compute the worktree base directory for a Miley repository.
+ * Convention: repositoryPath + /.worktrees/
+ */
+export function computeWorktreeBaseDir(repositoryPath: string): string {
+	return `${repositoryPath}/.worktrees`;
+}
+
 // Infer types from schemas
 export type UserIdentifier = z.infer<typeof UserIdentifierSchema>;
 export type UserAccessControlConfig = z.infer<
@@ -376,6 +502,10 @@ export type RepositoryConfigPayload = z.infer<
 	typeof RepositoryConfigPayloadSchema
 >;
 export type EdgeConfigPayload = z.infer<typeof EdgeConfigPayloadSchema>;
+export type MileyLinearConfig = z.infer<typeof MileyLinearConfigSchema>;
+export type MileyServerConfig = z.infer<typeof MileyServerConfigSchema>;
+export type MileyRepositoryConfig = z.infer<typeof MileyRepositoryConfigSchema>;
+export type MileyConfig = z.infer<typeof MileyConfigSchema>;
 
 /**
  * Assert that a repository has a Linear workspace ID and return it.

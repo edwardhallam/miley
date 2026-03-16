@@ -36,6 +36,10 @@ export type {
 	EdgeConfigPayload,
 	EdgeWorkerConfig,
 	LinearWorkspaceConfig,
+	MileyConfig,
+	MileyLinearConfig,
+	MileyRepositoryConfig,
+	MileyServerConfig,
 	OAuthCallbackHandler,
 	RepositoryConfig,
 	RepositoryConfigPayload,
@@ -44,10 +48,15 @@ export type {
 	UserIdentifier,
 } from "./config-types.js";
 export {
+	computeWorktreeBaseDir,
 	EdgeConfigPayloadSchema,
 	// Zod schemas for runtime validation
 	EdgeConfigSchema,
 	LinearWorkspaceConfigSchema,
+	MileyConfigSchema,
+	MileyLinearConfigSchema,
+	MileyRepositoryConfigSchema,
+	MileyServerConfigSchema,
 	migrateEdgeConfig,
 	RepositoryConfigPayloadSchema,
 	RepositoryConfigSchema,

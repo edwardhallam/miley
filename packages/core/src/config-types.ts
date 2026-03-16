@@ -8,12 +8,21 @@ import type { Workspace } from "./MileyAgentSession.js";
 
 // Re-export schemas and types from config-schemas
 export {
+	computeWorktreeBaseDir,
 	type EdgeConfig,
 	type EdgeConfigPayload,
 	EdgeConfigPayloadSchema,
 	EdgeConfigSchema,
 	type LinearWorkspaceConfig,
 	LinearWorkspaceConfigSchema,
+	type MileyConfig,
+	MileyConfigSchema,
+	type MileyLinearConfig,
+	MileyLinearConfigSchema,
+	type MileyRepositoryConfig,
+	MileyRepositoryConfigSchema,
+	type MileyServerConfig,
+	MileyServerConfigSchema,
 	migrateEdgeConfig,
 	type RepositoryConfig,
 	type RepositoryConfigPayload,

@@ -1,15 +1,92 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { migrateEdgeConfig } from "miley-core";
+import type { MileyConfig } from "miley-core";
+import {
+	computeWorktreeBaseDir,
+	MileyConfigSchema,
+	migrateEdgeConfig,
+} from "miley-core";
 import type { EdgeConfig } from "../config/types.js";
 import type { Logger } from "./Logger.js";
 
 /**
+ * Detect whether a raw JSON object is a MileyConfig (new format)
+ * by checking for the distinctive top-level `server` and `linear` keys.
+ */
+function isMileyConfigFormat(raw: Record<string, unknown>): boolean {
+	return (
+		typeof raw.server === "object" &&
+		raw.server !== null &&
+		typeof raw.linear === "object" &&
+		raw.linear !== null
+	);
+}
+
+/**
+ * Convert a validated MileyConfig to EdgeConfig for backward compatibility
+ * with the rest of the codebase (EdgeWorker, PromptBuilder, etc.).
+ *
+ * Mapping:
+ * - config.linear → linearWorkspaces[linear.workspaceId]
+ * - config.server → serverPort/serverHost (set via EdgeWorkerRuntimeConfig, not here)
+ * - repo.preferLocalBranch → preserved as-is (new field, consumed by GitService)
+ * - workspaceBaseDir → computed from repositoryPath + /.worktrees/
+ */
+function mileyConfigToEdgeConfig(miley: MileyConfig): EdgeConfig {
+	return {
+		repositories: miley.repositories.map((repo) => ({
+			id: repo.id,
+			name: repo.name,
+			repositoryPath: repo.repositoryPath,
+			baseBranch: repo.baseBranch,
+			githubUrl: repo.githubUrl,
+			linearWorkspaceId: repo.linearWorkspaceId,
+			teamKeys: repo.teamKeys,
+			routingLabels: repo.routingLabels,
+			projectKeys: repo.projectKeys,
+			// Compute worktreeBaseDir from repositoryPath (the key schema change)
+			workspaceBaseDir: computeWorktreeBaseDir(repo.repositoryPath),
+			isActive: repo.isActive,
+			allowedTools: repo.allowedTools,
+			disallowedTools: repo.disallowedTools,
+			mcpConfigPath: repo.mcpConfigPath,
+			appendInstruction: repo.appendInstruction,
+			model: repo.model,
+			fallbackModel: repo.fallbackModel,
+			userAccessControl: repo.userAccessControl,
+		})),
+		// Map top-level linear block to the linearWorkspaces record format
+		linearWorkspaces: {
+			[miley.linear.workspaceId]: {
+				linearToken: miley.linear.token,
+				linearWorkspaceName: miley.linear.workspaceName,
+			},
+		},
+		claudeDefaultModel: miley.claudeDefaultModel,
+		claudeDefaultFallbackModel: miley.claudeDefaultFallbackModel,
+		geminiDefaultModel: miley.geminiDefaultModel,
+		codexDefaultModel: miley.codexDefaultModel,
+		defaultRunner: miley.defaultRunner,
+		global_setup_script: miley.global_setup_script,
+		defaultAllowedTools: miley.defaultAllowedTools,
+		defaultDisallowedTools: miley.defaultDisallowedTools,
+		userAccessControl: miley.userAccessControl,
+	};
+}
+
+/**
  * Service responsible for configuration management
- * Handles loading, saving, and validation of edge configuration
+ * Handles loading, saving, and validation of edge configuration.
+ *
+ * Supports two config formats:
+ * - MileyConfig (new): has top-level `server` and `linear` blocks
+ * - EdgeConfig (legacy): has `linearWorkspaces` record and `workspaceBaseDir` per-repo
+ *
+ * Both formats are converted to EdgeConfig internally for backward compatibility.
  */
 export class ConfigService {
 	private configPath: string;
+	private _mileyConfig: MileyConfig | null = null;
 
 	constructor(
 		mileyHome: string,
@@ -26,17 +103,42 @@ export class ConfigService {
 	}
 
 	/**
-	 * Load edge configuration from disk
+	 * Get the MileyConfig if the config file uses the new format.
+	 * Returns null if using the legacy EdgeConfig format.
+	 */
+	getMileyConfig(): MileyConfig | null {
+		return this._mileyConfig;
+	}
+
+	/**
+	 * Load edge configuration from disk.
+	 * Detects and handles both MileyConfig (new) and EdgeConfig (legacy) formats.
 	 */
 	load(): EdgeConfig {
 		let config: EdgeConfig = { repositories: [] };
+		this._mileyConfig = null;
 
 		if (existsSync(this.configPath)) {
 			try {
 				const content = readFileSync(this.configPath, "utf-8");
 				const raw = JSON.parse(content);
-				// Migrate legacy per-repo tokens to workspace-keyed format
-				config = migrateEdgeConfig(raw) as EdgeConfig;
+
+				if (isMileyConfigFormat(raw)) {
+					// New MileyConfig format
+					const parseResult = MileyConfigSchema.safeParse(raw);
+					if (parseResult.success) {
+						this._mileyConfig = parseResult.data;
+						config = mileyConfigToEdgeConfig(parseResult.data);
+						this.logger.info("Loaded config (MileyConfig format)");
+					} else {
+						this.logger.error(
+							`Invalid MileyConfig: ${parseResult.error.message}`,
+						);
+					}
+				} else {
+					// Legacy EdgeConfig format
+					config = migrateEdgeConfig(raw) as EdgeConfig;
+				}
 			} catch (e) {
 				this.logger.error(
 					`Failed to load edge config: ${(e as Error).message}`,
@@ -59,8 +161,10 @@ export class ConfigService {
 			);
 		}
 
-		// Run migrations on loaded config
-		config = this.migrateConfig(config);
+		// Run migrations on loaded config (only for legacy format)
+		if (!this._mileyConfig) {
+			config = this.migrateConfig(config);
+		}
 
 		return config;
 	}
