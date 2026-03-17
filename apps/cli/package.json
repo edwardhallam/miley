@@ -27,7 +27,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ceedaragents/cyrus.git",
+		"url": "https://github.com/edwardhallam/miley.git",
 		"directory": "apps/cli"
 	},
 	"keywords": [
@@ -37,8 +37,8 @@
 		"automation",
 		"cli"
 	],
-	"author": "",
-	"license": "MIT",
+	"author": "Edward Hallam",
+	"license": "Apache-2.0",
 	"dependencies": {
 		"@linear/sdk": "^64.0.0",
 		"commander": "^14.0.2",

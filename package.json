@@ -27,11 +27,11 @@
 		"agent",
 		"monorepo"
 	],
-	"author": "Ceedar",
-	"license": "MIT",
+	"author": "Edward Hallam",
+	"license": "Apache-2.0",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/ceedaragents/cyrus"
+		"url": "https://github.com/edwardhallam/miley"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.1.3",

@@ -1,17 +1,10 @@
-# Cyrus
+# Miley
 
-<div>
-  <a href="https://github.com/ceedaragents/cyrus/actions">
-    <img src="https://github.com/ceedaragents/cyrus/actions/workflows/ci.yml/badge.svg" alt="CI">
-  </a>
+> **Fork notice:** Miley is a derivative work of [Cyrus](https://github.com/ceedaragents/cyrus) by [Ceedar](https://ceedaragents.com), licensed under the Apache License 2.0. See [NOTICE](NOTICE) for attribution details.
 
-</div>
+A self-hosted Linear-to-Claude Code bridge agent. Miley monitors Linear issues assigned to it, creates isolated Git worktrees for each issue, runs Claude Code sessions to process them, and streams detailed agent activity updates back to Linear.
 
-[![Discord](https://img.shields.io/discord/1443747721910685792?label=Discord&logo=discord&logoColor=white)](https://discord.gg/prrtADHYTt)
-
-Your (Claude Code|Codex|Cursor|Gemini) powered (Linear|Github|Slack) agent. Cyrus monitors (Linear|Github) issues assigned to it, creates isolated Git worktrees for each issue, runs (Claude Code|Codex|Cursor|Gemini) sessions to process them, and streams detailed agent activity updates back to (Linear|Github), along with rich interactions like dropdown selects and approvals.
-
-**Note:** Cyrus requires you to bring your own keys/billing for tokens.
+**Note:** Miley requires you to bring your own Anthropic API key.
 
 ---
 
@@ -69,7 +62,6 @@ This project is licensed under the Apache 2.0 license - see the [LICENSE](LICENS
 
 ## Credits
 
-This project builds on the technologies built by the awesome teams at Linear, and Claude by Anthropic:
-
+- [Cyrus](https://github.com/ceedaragents/cyrus) by Ceedar — the upstream project this fork is based on
 - [Linear API](https://linear.app/developers)
 - [Anthropic Claude Code](https://www.claude.com/product/claude-code)

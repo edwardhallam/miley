@@ -38,6 +38,6 @@
 		"handler",
 		"miley"
 	],
-	"author": "Miley Team",
-	"license": "MIT"
+	"author": "Edward Hallam",
+	"license": "Apache-2.0"
 }
