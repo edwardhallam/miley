@@ -435,6 +435,10 @@ export class ClaudeRunner extends EventEmitter implements IAgentRunner {
 					// particularly with CLAUDE.md files, settings files, and custom slash commands,
 					// see: https://docs.claude.com/en/docs/claude-code/sdk/migration-guide#settings-sources-no-longer-loaded-by-default
 					settingSources: ["user", "project", "local"],
+					// TODO: Plugin hooks (like superpowers SessionStart) don't fire in SDK sessions.
+					// Passing plugins via the `plugins` option hangs the session (NEX-502).
+					// Investigate: may need a different plugin format, or only pass specific plugins.
+					// See NEX-490 session notes for full research.
 					env: {
 						...process.env,
 						CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: "1",

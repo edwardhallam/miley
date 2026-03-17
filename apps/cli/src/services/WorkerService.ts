@@ -234,6 +234,7 @@ export class WorkerService {
 			webhookBaseUrl: process.env.MILEY_BASE_URL,
 			serverPort: parsePort(process.env.MILEY_SERVER_PORT, DEFAULT_SERVER_PORT),
 			serverHost: isExternalHost ? "0.0.0.0" : "localhost",
+			// platform: "cli" as const, // TODO: Enable CLI mode after fixing linearWorkspaceId flow
 			ngrokAuthToken,
 			// User access control configuration
 			userAccessControl: edgeConfig.userAccessControl,

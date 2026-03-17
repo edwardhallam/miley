@@ -1,7 +1,13 @@
 import { EventEmitter } from "node:events";
 import { readFile } from "node:fs/promises";
 import { watch as chokidarWatch, type FSWatcher } from "chokidar";
-import type { EdgeWorkerConfig, ILogger, RepositoryConfig } from "miley-core";
+import {
+	computeWorktreeBaseDir,
+	type EdgeWorkerConfig,
+	type ILogger,
+	MileyConfigSchema,
+	type RepositoryConfig,
+} from "miley-core";
 
 /**
  * Describes the set of repository-level changes detected after a config
@@ -197,14 +203,42 @@ export class ConfigManager extends EventEmitter {
 			const configContent = await readFile(this.configPath, "utf-8");
 			const parsedConfig = JSON.parse(configContent);
 
+			// Detect MileyConfig format and convert repositories + linearWorkspaces
+			let resolvedRepositories = parsedConfig.repositories || [];
+			let resolvedLinearWorkspaces =
+				parsedConfig.linearWorkspaces || this.config.linearWorkspaces;
+
+			if (
+				typeof parsedConfig.server === "object" &&
+				parsedConfig.server !== null &&
+				typeof parsedConfig.linear === "object" &&
+				parsedConfig.linear !== null
+			) {
+				// MileyConfig format: map linear creds to repos and linearWorkspaces
+				const mileyResult = MileyConfigSchema.safeParse(parsedConfig);
+				if (mileyResult.success) {
+					const miley = mileyResult.data;
+					resolvedRepositories = miley.repositories.map((repo) => ({
+						...repo,
+						linearWorkspaceId: miley.linear.workspaceId,
+						workspaceBaseDir: computeWorktreeBaseDir(repo.repositoryPath),
+					}));
+					resolvedLinearWorkspaces = {
+						[miley.linear.workspaceId]: {
+							linearToken: miley.linear.token,
+							linearWorkspaceName: miley.linear.workspaceName,
+						},
+					};
+				}
+			}
+
 			// Merge with current EdgeWorker config structure
 			const newConfig: EdgeWorkerConfig = {
 				...this.config,
-				repositories: parsedConfig.repositories || [],
+				repositories: resolvedRepositories,
 				ngrokAuthToken:
 					parsedConfig.ngrokAuthToken || this.config.ngrokAuthToken,
-				linearWorkspaces:
-					parsedConfig.linearWorkspaces || this.config.linearWorkspaces,
+				linearWorkspaces: resolvedLinearWorkspaces,
 				claudeDefaultModel:
 					parsedConfig.claudeDefaultModel ||
 					parsedConfig.defaultModel ||

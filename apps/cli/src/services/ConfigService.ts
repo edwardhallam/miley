@@ -40,7 +40,7 @@ function mileyConfigToEdgeConfig(miley: MileyConfig): EdgeConfig {
 			repositoryPath: repo.repositoryPath,
 			baseBranch: repo.baseBranch,
 			githubUrl: repo.githubUrl,
-			linearWorkspaceId: repo.linearWorkspaceId,
+			linearWorkspaceId: miley.linear.workspaceId,
 			teamKeys: repo.teamKeys,
 			routingLabels: repo.routingLabels,
 			projectKeys: repo.projectKeys,
