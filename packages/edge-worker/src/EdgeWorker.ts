@@ -2463,10 +2463,12 @@ ${taskSection}`;
 		newSession: MileyAgentSession,
 		agentSessionManager: AgentSessionManager,
 	): void {
+		// Pick the OLDEST session (most context-rich, the original investigation)
+		// not the most recent (which may be a short follow-up)
 		const previousSessions = agentSessionManager
 			.getSessionsByIssueId(issueId)
 			.filter((s) => s.claudeSessionId && s !== newSession)
-			.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+			.sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0));
 		if (previousSessions.length > 0) {
 			const prevClaudeSessionId = previousSessions[0]!.claudeSessionId;
 			if (prevClaudeSessionId) {
