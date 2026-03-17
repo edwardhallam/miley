@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join, resolve as pathResolve } from "node:path";
 
@@ -640,6 +640,43 @@ export class GitService {
 				}
 			} catch (_e) {
 				// git worktree command failed, continue with creation
+			}
+
+			// Check if worktree directory exists on disk (e.g., leftover from a previous run
+			// not yet cleaned up by the nightly workflow)
+			if (existsSync(workspacePath)) {
+				let isValidWorktree = false;
+				try {
+					execSync(`git -C "${workspacePath}" rev-parse --git-dir`, {
+						stdio: "pipe",
+					});
+					isValidWorktree = true;
+				} catch {
+					// Directory exists but is not a valid git worktree
+				}
+
+				if (isValidWorktree) {
+					this.logger.info(`Reusing existing worktree at ${workspacePath}`);
+					return {
+						path: workspacePath,
+						isGitWorktree: true,
+						resolvedBaseBranches: { [repository.id]: resolution },
+					};
+				}
+
+				// Directory exists but isn't a valid worktree — force-remove and recreate
+				this.logger.warn(
+					`Directory exists at ${workspacePath} but is not a valid git worktree, removing and recreating`,
+				);
+				try {
+					execSync(`git worktree remove --force "${workspacePath}"`, {
+						cwd: repository.repositoryPath,
+						stdio: "pipe",
+					});
+				} catch {
+					// If git worktree remove fails (not registered), remove the directory manually
+					rmSync(workspacePath, { recursive: true, force: true });
+				}
 			}
 
 			// Check if branch already exists
