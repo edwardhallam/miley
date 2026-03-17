@@ -4599,6 +4599,10 @@ ${input.userComment}
 				this.getDefaultFallbackModelForRunner(runnerType),
 			logger: log,
 			hooks,
+			// NOTE: Plugin loading via SDK `plugins` option hangs sessions (tested with
+			// both all plugins and superpowers-only). The SDK's plugins option appears
+			// incompatible with our usage pattern. Instead, superpowers hook is injected
+			// via .claude/settings.json (project-level, loaded via settingSources).
 			// Enable Chrome integration for Claude runner (disabled for other runners)
 			...(runnerType === "claude" && { extraArgs: { chrome: null } }),
 			// AskUserQuestion callback - only for Claude runner

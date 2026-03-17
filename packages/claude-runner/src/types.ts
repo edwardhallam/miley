@@ -43,6 +43,7 @@ export interface ClaudeRunnerConfig {
 		systemPromptVersion?: string;
 	};
 	hooks?: Partial<Record<HookEvent, HookCallbackMatcher[]>>; // Claude SDK hooks
+	plugins?: Array<{ type: "local"; path: string }>; // Claude Code plugins to load (with hooks)
 	outputFormat?: OutputFormatConfig; // Structured output format configuration
 	extraArgs?: Record<string, string | null>; // Additional CLI arguments to pass to Claude Code (e.g., { chrome: null } for --chrome flag)
 	/**
