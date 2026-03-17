@@ -2454,6 +2454,31 @@ ${taskSection}`;
 	}
 
 	/**
+	 * Carry forward claudeSessionId from a previous session for the same issue.
+	 * This allows the SDK to resume with full conversation history so Claude
+	 * knows what work was already done (prevents redoing completed work).
+	 */
+	private carryForwardClaudeSessionId(
+		issueId: string,
+		newSession: MileyAgentSession,
+		agentSessionManager: AgentSessionManager,
+	): void {
+		const previousSessions = agentSessionManager
+			.getSessionsByIssueId(issueId)
+			.filter((s) => s.claudeSessionId && s !== newSession)
+			.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+		if (previousSessions.length > 0) {
+			const prevClaudeSessionId = previousSessions[0]!.claudeSessionId;
+			if (prevClaudeSessionId) {
+				newSession.claudeSessionId = prevClaudeSessionId;
+				this.logger.info(
+					`Carrying forward claudeSessionId ${prevClaudeSessionId} from previous session for issue ${issueId}`,
+				);
+			}
+		}
+	}
+
+	/**
 	 * Handle agent session created webhook
 	 * Can happen due to being 'delegated' or @ mentioned in a new thread
 	 * @param webhook The agent session created webhook
@@ -2660,6 +2685,8 @@ ${taskSection}`;
 			attachmentsDir: _attachmentsDir,
 			allowedDirectories,
 		} = sessionData;
+
+		this.carryForwardClaudeSessionId(issue.id, session, agentSessionManager);
 
 		if (!session.metadata) {
 			session.metadata = {};
@@ -3010,22 +3037,7 @@ ${taskSection}`;
 			fullIssue = sessionData.fullIssue;
 			session = sessionData.session;
 
-			// Carry forward claudeSessionId from previous sessions for the same issue.
-			// This allows the SDK to resume with full conversation history so Claude
-			// knows what work was already done (prevents redoing completed work).
-			const previousSessions = agentSessionManager
-				.getSessionsByIssueId(issue.id)
-				.filter((s) => s.claudeSessionId && s !== session)
-				.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-			if (previousSessions.length > 0) {
-				const prevClaudeSessionId = previousSessions[0]!.claudeSessionId;
-				if (prevClaudeSessionId) {
-					session.claudeSessionId = prevClaudeSessionId;
-					this.logger.info(
-						`Carrying forward claudeSessionId ${prevClaudeSessionId} from previous session for issue ${issue.id}`,
-					);
-				}
-			}
+			this.carryForwardClaudeSessionId(issue.id, session, agentSessionManager);
 
 			this.logger.debug(`Created new session ${sessionId} (prompted webhook)`);
 
