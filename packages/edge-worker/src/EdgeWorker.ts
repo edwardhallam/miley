@@ -3010,6 +3010,23 @@ ${taskSection}`;
 			fullIssue = sessionData.fullIssue;
 			session = sessionData.session;
 
+			// Carry forward claudeSessionId from previous sessions for the same issue.
+			// This allows the SDK to resume with full conversation history so Claude
+			// knows what work was already done (prevents redoing completed work).
+			const previousSessions = agentSessionManager
+				.getSessionsByIssueId(issue.id)
+				.filter((s) => s.claudeSessionId && s !== session)
+				.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+			if (previousSessions.length > 0) {
+				const prevClaudeSessionId = previousSessions[0]!.claudeSessionId;
+				if (prevClaudeSessionId) {
+					session.claudeSessionId = prevClaudeSessionId;
+					this.logger.info(
+						`Carrying forward claudeSessionId ${prevClaudeSessionId} from previous session for issue ${issue.id}`,
+					);
+				}
+			}
+
 			this.logger.debug(`Created new session ${sessionId} (prompted webhook)`);
 
 			// Save state and emit events for new session
@@ -5142,17 +5159,19 @@ ${input.userComment}
 		// Fetch issue labels early to determine runner type
 		const labels = await this.fetchIssueLabels(fullIssue);
 
-		// Determine which runner to use based on existing session IDs
-		const hasClaudeSession = !isNewSession && Boolean(session.claudeSessionId);
-		const hasGeminiSession = !isNewSession && Boolean(session.geminiSessionId);
-		const hasCodexSession = !isNewSession && Boolean(session.codexSessionId);
-		const hasCursorSession = !isNewSession && Boolean(session.cursorSessionId);
+		// Determine which runner to use based on existing session IDs.
+		// Check for claudeSessionId regardless of isNewSession — it may have been
+		// carried forward from a previous session for the same issue (enabling resume
+		// so Claude has full conversation history of prior work).
+		const hasClaudeSession = Boolean(session.claudeSessionId);
+		const hasGeminiSession = Boolean(session.geminiSessionId);
+		const hasCodexSession = Boolean(session.codexSessionId);
+		const hasCursorSession = Boolean(session.cursorSessionId);
 		const needsNewSession =
-			isNewSession ||
-			(!hasClaudeSession &&
-				!hasGeminiSession &&
-				!hasCodexSession &&
-				!hasCursorSession);
+			!hasClaudeSession &&
+			!hasGeminiSession &&
+			!hasCodexSession &&
+			!hasCursorSession;
 
 		// System prompt comes from repo appendInstruction
 		const systemPromptResult = await this.determineSystemPromptFromLabels(
