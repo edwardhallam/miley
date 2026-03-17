@@ -2752,6 +2752,9 @@ ${taskSection}`;
 			);
 
 			// Create agent runner — appendInstruction is delivered via systemPrompt param
+			// Use carried-forward claudeSessionId for resume so Claude has full
+			// conversation history from prior sessions on the same issue
+			const resumeSessionId = session.claudeSessionId || undefined;
 			const { config: runnerConfig, runnerType } = this.buildAgentRunnerConfig(
 				session,
 				primaryRepo,
@@ -2760,7 +2763,7 @@ ${taskSection}`;
 				allowedTools,
 				allowedDirectories,
 				disallowedTools,
-				undefined, // resumeSessionId
+				resumeSessionId,
 				labels,
 				fullIssue.description || undefined,
 				undefined, // maxTurns
