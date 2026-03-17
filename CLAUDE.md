@@ -273,3 +273,41 @@ Removed upstream packages (stubs in `removed-package-stubs.ts`):
 - `miley-mcp-tools`
 - `miley-cloudflare-tunnel-client`
 - codex-runner, cursor-runner, gemini-runner, simple-agent-runner, f1 test framework
+
+## Session Learnings (2026-03-17)
+
+Critical discoveries from the initial Miley build-out session:
+
+### SDK Plugin Loading
+- `settingSources: ["user", "project", "local"]` loads skills into Claude's context but does NOT register them in the Skill tool registry (known bug #22171)
+- The `plugins` option (`plugins: [{ type: "local", path: "..." }]`) DOES register skills in the Skill tool — required for superpowers
+- Only pass the superpowers plugin (hardcoded path) — loading all 12+ plugins hangs the session
+- The CLAUDECODE env var must be stripped (`CLAUDECODE: undefined`) to prevent "nested session" errors when spawning SDK sessions from a Claude Code terminal
+
+### Session Resume
+- `resume` parameter in the SDK works on completed sessions — session files persist at `~/.claude/projects/<encoded-cwd>/`
+- Carry-forward logic in `carryForwardClaudeSessionId()` finds the OLDEST session for an issue (most context)
+- The `initializeAgentRunner` path (initial assignment webhook) must pass `session.claudeSessionId` as `resumeSessionId` to `buildAgentRunnerConfig` — this was the missing link
+- CWD must match between original and resumed sessions for the SDK to find the session file
+
+### Worktree Lifecycle
+- Miley merges but NEVER cleans up worktrees — n8n handles cleanup on schedule
+- Worktree reuse: if `.worktrees/<ISSUE-ID>` already exists, reuse it
+- The nightly cleanup workflow can eat Miley's own worktree mid-session — the "never cleanup" rule in miley-agent.md prevents this from Miley's side
+
+### Skill Invocation
+- Sparse issue descriptions trigger skill invocation; dense specs cause Claude to skip skills
+- The superpowers SessionStart hook must be in `~/.claude/settings.json` (user-level, loads before project settings)
+- Plugin hooks from `hooks.json` don't fire via settingSources — only via the `plugins` SDK option
+- The `Skill` tool only resolves plugin-registered skills, not filesystem-discovered skills
+
+### Config Architecture  
+- appendInstruction is minimal: "You are Miley, an autonomous agent..."
+- Per-repo behavior rules live in `.claude/rules/miley-agent.md`
+- The rules file uses a conditional: "If you have not been told you are Miley, ignore this section"
+- Config is hot-reloaded via ConfigService watching ~/.miley/config.json
+
+### launchd
+- Use `launchctl bootout/bootstrap` for clean restarts — `load/unload` caches stale state
+- The plist must point to the source path directly (`~/code/miley/apps/cli/dist/src/app.js`), not the npm global symlink
+- Default port changed from 3456 (Cyrus) to 3457
