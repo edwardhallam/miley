@@ -444,6 +444,9 @@ export class ClaudeRunner extends EventEmitter implements IAgentRunner {
 						: {}),
 					env: {
 						...process.env,
+						// Remove CLAUDECODE env var to allow SDK sessions to spawn from
+						// within a parent Claude Code session (e.g., manual testing)
+						CLAUDECODE: undefined,
 						CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD: "1",
 						CLAUDE_CODE_ENABLE_TASKS: "true",
 						CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1",

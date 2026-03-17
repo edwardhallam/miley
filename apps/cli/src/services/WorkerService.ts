@@ -227,7 +227,9 @@ export class WorkerService {
 					| "gemini"
 					| "codex"
 					| "cursor"
-					| undefined) || edgeConfig.defaultRunner,
+					| undefined) ||
+				edgeConfig.defaultRunner ||
+				"claude",
 			issueUpdateTrigger: edgeConfig.issueUpdateTrigger,
 			promptDefaults: edgeConfig.promptDefaults,
 			linearWorkspaces: edgeConfig.linearWorkspaces,
