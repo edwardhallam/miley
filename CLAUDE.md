@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code when working with the Miley codebase.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Overview
 
@@ -88,6 +88,8 @@ Linear webhook (issue assigned)
 - **Session resume**: `claudeSessionId` carry-forward gives Claude full conversation history from prior sessions on the same issue (oldest session ID used for maximum context)
 - **Worktree reuse**: If a worktree already exists for a branch, it is reused rather than recreated
 - **Project-local worktrees**: Stored in `<repositoryPath>/.worktrees/` (not a central worktree directory)
+- **Two-server split**: Public Fastify on `0.0.0.0:3457` (webhooks, status, version) and internal Fastify on `127.0.0.1:3458` (admin, MCP). Admin endpoints are physically unreachable from the network.
+- **Fail-closed MCP auth**: `/mcp/miley-tools` rejects all requests when `MILEY_API_KEY` is unset (no silent bypass)
 
 ## Build and Test
 
@@ -105,6 +107,10 @@ pnpm -r test
 
 # Run package tests only (excludes apps/)
 pnpm test:packages:run
+
+# Run a single test file
+pnpm --filter <package-name> test:run -- <file-pattern>
+# Example: pnpm --filter miley-core test:run -- PersistenceManager
 
 # Type checking
 pnpm typecheck
@@ -124,7 +130,7 @@ pnpm dev
 Husky runs on every commit:
 1. `lint-staged` -- biome check on staged `.js/.jsx/.ts/.tsx/.json` files
 2. `pnpm typecheck` -- full TypeScript type checking across the monorepo
-3. JSON Schema sync check -- if `config-schemas.ts` changed, verifies generated schemas are up-to-date
+3. JSON Schema sync check -- if `config-schemas.ts` changed, verifies generated schemas are up-to-date (note: `.husky/pre-commit` still references `cyrus-core` filter name — may need updating to `miley-core`)
 
 ## Key Files
 
@@ -140,6 +146,7 @@ Husky runs on every commit:
 | `packages/claude-runner/src/ClaudeRunner.ts` | Claude Code SDK wrapper, env var stripping, superpowers plugin loading |
 | `apps/cli/src/services/ConfigService.ts` | MileyConfig loading, validation, format detection, hot-reload |
 | `apps/cli/src/Application.ts` | Bootstrap, env file watcher, service initialization |
+| `packages/CLAUDE.md` | Linear webhook constraint docs (agentSessionCreated/agentSessionPrompted handling) |
 
 ## Configuration
 
@@ -183,7 +190,8 @@ ConfigService auto-detects MileyConfig vs legacy EdgeConfig format and converts 
 | `ANTHROPIC_API_KEY` | Required. Claude API key |
 | `LINEAR_API_KEY` | Linear API token (used by MCP tools) |
 | `MILEY_API_KEY` | API key for config-updater endpoints |
-| `MILEY_SERVER_PORT` | Override server port (default: 3457) |
+| `MILEY_SERVER_PORT` | Override public server port (default: 3457) |
+| `MILEY_INTERNAL_PORT` | Override internal server port (default: 3458, localhost only) |
 | `MILEY_HOST_EXTERNAL` | Set to `true` to bind 0.0.0.0 instead of localhost |
 | `CLOUDFLARE_TOKEN` | Cloudflare Tunnel token for webhook delivery |
 | `GITHUB_TOKEN` | GitHub token for PR operations |
@@ -214,7 +222,8 @@ Key fields:
 ## Deployment
 
 - **Host**: Mac Studio
-- **Port**: 3457
+- **Public port**: 3457 (webhooks, /status, /version — exposed via CF Tunnel)
+- **Internal port**: 3458 (admin /api/update/*, /mcp/miley-tools — localhost only)
 - **Service**: `com.miley.agent` (launchd)
 - **Config directory**: `~/.miley/` (config.json, .env, logs/, state/)
 - **Worktrees**: `<repositoryPath>/.worktrees/<issue-id>/`
@@ -223,13 +232,13 @@ Key fields:
 
 ```bash
 # Start
-launchctl load ~/Library/LaunchAgents/com.miley.agent.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.miley.agent.plist
 
 # Stop
-launchctl unload ~/Library/LaunchAgents/com.miley.agent.plist
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.miley.agent.plist
 
 # Restart
-launchctl unload ~/Library/LaunchAgents/com.miley.agent.plist && launchctl load ~/Library/LaunchAgents/com.miley.agent.plist
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.miley.agent.plist && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.miley.agent.plist
 
 # View logs
 tail -f ~/.miley/logs/miley.log
@@ -301,9 +310,9 @@ Critical discoveries from the initial Miley build-out session:
 - Plugin hooks from `hooks.json` don't fire via settingSources — only via the `plugins` SDK option
 - The `Skill` tool only resolves plugin-registered skills, not filesystem-discovered skills
 
-### Config Architecture  
+### Config Architecture
 - appendInstruction is minimal: "You are Miley, an autonomous agent..."
-- Per-repo behavior rules live in `.claude/rules/miley-agent.md`
+- Per-repo behavior rules live in `.claude/rules/miley-agent.md` in each target repository (not in the Miley repo itself)
 - The rules file uses a conditional: "If you have not been told you are Miley, ignore this section"
 - Config is hot-reloaded via ConfigService watching ~/.miley/config.json
 
