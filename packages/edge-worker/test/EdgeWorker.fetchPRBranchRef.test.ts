@@ -92,6 +92,13 @@ describe("EdgeWorker - fetchPRBranchRefs", () => {
 		const mockSharedAppServer = {
 			start: vi.fn().mockResolvedValue(undefined),
 			stop: vi.fn().mockResolvedValue(undefined),
+			getInternalFastifyInstance: vi.fn().mockReturnValue({
+				get: vi.fn(),
+				post: vi.fn(),
+				register: vi.fn(),
+				addHook: vi.fn(),
+			}),
+			getInternalPort: vi.fn().mockReturnValue(3458),
 		};
 		vi.mocked(SharedApplicationServer).mockImplementation(
 			() => mockSharedAppServer,

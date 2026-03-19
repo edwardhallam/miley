@@ -11,6 +11,13 @@ vi.mock("../src/SharedApplicationServer.js", () => ({
 		registerLinearEventTransport: vi.fn(),
 		registerConfigUpdater: vi.fn(),
 		registerOAuthCallback: vi.fn(),
+		getInternalFastifyInstance: vi.fn().mockReturnValue({
+			get: vi.fn(),
+			post: vi.fn(),
+			register: vi.fn(),
+			addHook: vi.fn(),
+		}),
+		getInternalPort: vi.fn().mockReturnValue(3458),
 	})),
 }));
 

@@ -178,6 +178,13 @@ describe("EdgeWorker - Screenshot Upload Guidance Hooks", () => {
 					start: vi.fn().mockResolvedValue(undefined),
 					stop: vi.fn().mockResolvedValue(undefined),
 					getFastifyInstance: vi.fn().mockReturnValue({ post: vi.fn() }),
+					getInternalFastifyInstance: vi.fn().mockReturnValue({
+						get: vi.fn(),
+						post: vi.fn(),
+						register: vi.fn(),
+						addHook: vi.fn(),
+					}),
+					getInternalPort: vi.fn().mockReturnValue(3458),
 					getWebhookUrl: vi
 						.fn()
 						.mockReturnValue("http://localhost:3456/webhook"),

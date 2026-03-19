@@ -24,6 +24,13 @@ vi.mock("../src/SharedApplicationServer.js", () => ({
 			get: vi.fn(),
 			post: vi.fn(),
 		}),
+		getInternalFastifyInstance: vi.fn().mockReturnValue({
+			get: vi.fn(),
+			post: vi.fn(),
+			register: vi.fn(),
+			addHook: vi.fn(),
+		}),
+		getInternalPort: vi.fn().mockReturnValue(3458),
 		start: vi.fn().mockResolvedValue(undefined),
 		stop: vi.fn().mockResolvedValue(undefined),
 		getWebhookUrl: vi.fn().mockReturnValue("http://localhost:3456/webhook"),
@@ -124,6 +131,13 @@ describe("EdgeWorker - Version Endpoint", () => {
 					({
 						initializeFastify: vi.fn(),
 						getFastifyInstance: vi.fn().mockReturnValue(mockFastify),
+						getInternalFastifyInstance: vi.fn().mockReturnValue({
+							get: vi.fn(),
+							post: vi.fn(),
+							register: vi.fn(),
+							addHook: vi.fn(),
+						}),
+						getInternalPort: vi.fn().mockReturnValue(3458),
 						start: vi.fn().mockResolvedValue(undefined),
 						stop: vi.fn().mockResolvedValue(undefined),
 						getWebhookUrl: vi
@@ -161,6 +175,13 @@ describe("EdgeWorker - Version Endpoint", () => {
 					({
 						initializeFastify: vi.fn(),
 						getFastifyInstance: vi.fn().mockReturnValue(mockFastify),
+						getInternalFastifyInstance: vi.fn().mockReturnValue({
+							get: vi.fn(),
+							post: vi.fn(),
+							register: vi.fn(),
+							addHook: vi.fn(),
+						}),
+						getInternalPort: vi.fn().mockReturnValue(3458),
 						start: vi.fn().mockResolvedValue(undefined),
 						stop: vi.fn().mockResolvedValue(undefined),
 						getWebhookUrl: vi
@@ -209,6 +230,13 @@ describe("EdgeWorker - Version Endpoint", () => {
 					({
 						initializeFastify: vi.fn(),
 						getFastifyInstance: vi.fn().mockReturnValue(mockFastify),
+						getInternalFastifyInstance: vi.fn().mockReturnValue({
+							get: vi.fn(),
+							post: vi.fn(),
+							register: vi.fn(),
+							addHook: vi.fn(),
+						}),
+						getInternalPort: vi.fn().mockReturnValue(3458),
 						start: vi.fn().mockResolvedValue(undefined),
 						stop: vi.fn().mockResolvedValue(undefined),
 						getWebhookUrl: vi
@@ -261,6 +289,13 @@ describe("EdgeWorker - Version Endpoint", () => {
 					({
 						initializeFastify: vi.fn(),
 						getFastifyInstance: vi.fn().mockReturnValue(mockFastify),
+						getInternalFastifyInstance: vi.fn().mockReturnValue({
+							get: vi.fn(),
+							post: vi.fn(),
+							register: vi.fn(),
+							addHook: vi.fn(),
+						}),
+						getInternalPort: vi.fn().mockReturnValue(3458),
 						start: vi.fn().mockResolvedValue(undefined),
 						stop: vi.fn().mockResolvedValue(undefined),
 						getWebhookUrl: vi

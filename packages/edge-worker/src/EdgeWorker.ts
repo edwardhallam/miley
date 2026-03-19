@@ -270,6 +270,8 @@ export class EdgeWorker extends EventEmitter {
 			serverPort,
 			serverHost,
 			skipTunnel,
+			undefined,
+			this.config.serverInternalPort,
 		);
 
 		// Create single AgentSessionManager instance shared across all repositories
@@ -546,7 +548,7 @@ export class EdgeWorker extends EventEmitter {
 
 		// 3. Create and register ConfigUpdater (both platforms)
 		this.configUpdater = new ConfigUpdater(
-			this.sharedApplicationServer.getFastifyInstance(),
+			this.sharedApplicationServer.getInternalFastifyInstance(),
 			this.mileyHome,
 			process.env.MILEY_API_KEY || "",
 		);
@@ -3774,7 +3776,8 @@ ${taskSection}`;
 			return;
 		}
 
-		const fastify = this.sharedApplicationServer.getFastifyInstance() as any;
+		const fastify =
+			this.sharedApplicationServer.getInternalFastifyInstance() as any;
 		if (
 			typeof fastify.register !== "function" ||
 			typeof fastify.addHook !== "function"
@@ -4039,13 +4042,7 @@ ${taskSection}`;
 	}
 
 	private getMileyToolsMcpUrl(): string {
-		const server = this.sharedApplicationServer as {
-			getPort?: () => number;
-		};
-		const port =
-			typeof server.getPort === "function"
-				? server.getPort()
-				: this.config.serverPort || this.config.webhookPort || 3456;
+		const port = this.sharedApplicationServer.getInternalPort();
 		return `http://127.0.0.1:${port}${this.mileyToolsMcpEndpoint}`;
 	}
 
