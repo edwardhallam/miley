@@ -4198,7 +4198,7 @@ ${taskSection}`;
 	): boolean {
 		const expectedHeader = this.getMileyToolsMcpAuthorizationHeaderValue();
 		if (!expectedHeader) {
-			return true;
+			return false;
 		}
 
 		const authorizationHeader = Array.isArray(rawAuthorizationHeader)
