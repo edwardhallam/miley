@@ -1,7 +1,11 @@
 import type { EdgeWorkerConfig, Issue, RepositoryConfig } from "miley-core";
 import type { GitService } from "miley-edge-worker";
 import { EdgeWorker } from "miley-edge-worker";
-import { DEFAULT_SERVER_PORT, parsePort } from "../config/constants.js";
+import {
+	DEFAULT_INTERNAL_PORT,
+	DEFAULT_SERVER_PORT,
+	parsePort,
+} from "../config/constants.js";
 import type { Workspace } from "../config/types.js";
 import type { ConfigService } from "./ConfigService.js";
 import type { Logger } from "./Logger.js";
@@ -52,17 +56,24 @@ export class WorkerService {
 			DEFAULT_SERVER_PORT,
 		);
 		const serverHost = isExternalHost ? "0.0.0.0" : "localhost";
+		const internalPort = parsePort(
+			process.env.MILEY_INTERNAL_PORT,
+			DEFAULT_INTERNAL_PORT,
+		);
 
 		// Create and start SharedApplicationServer
 		this.setupWaitingServer = new SharedApplicationServer(
 			serverPort,
 			serverHost,
+			false,
+			undefined,
+			internalPort,
 		);
 		this.setupWaitingServer.initializeFastify();
 
 		// Register ConfigUpdater routes
 		const configUpdater = new ConfigUpdater(
-			this.setupWaitingServer.getFastifyInstance(),
+			this.setupWaitingServer.getInternalFastifyInstance(),
 			this.mileyHome,
 			process.env.MILEY_API_KEY || "",
 		);
@@ -82,7 +93,9 @@ export class WorkerService {
 		this.logger.raw("");
 		this.logger.divider(70);
 		this.logger.info("⏳ Waiting for configuration from server...");
-		this.logger.info(`🔗 Server running on port ${serverPort}`);
+		this.logger.info(
+			`🔗 Public server on port ${serverPort}, internal on port ${internalPort}`,
+		);
 
 		if (process.env.CLOUDFLARE_TOKEN) {
 			this.logger.info("🌩️  Cloudflare tunnel: Active");
@@ -113,17 +126,24 @@ export class WorkerService {
 			DEFAULT_SERVER_PORT,
 		);
 		const serverHost = isExternalHost ? "0.0.0.0" : "localhost";
+		const internalPort = parsePort(
+			process.env.MILEY_INTERNAL_PORT,
+			DEFAULT_INTERNAL_PORT,
+		);
 
 		// Create and start SharedApplicationServer
 		this.setupWaitingServer = new SharedApplicationServer(
 			serverPort,
 			serverHost,
+			false,
+			undefined,
+			internalPort,
 		);
 		this.setupWaitingServer.initializeFastify();
 
 		// Register ConfigUpdater routes
 		const configUpdater = new ConfigUpdater(
-			this.setupWaitingServer.getFastifyInstance(),
+			this.setupWaitingServer.getInternalFastifyInstance(),
 			this.mileyHome,
 			process.env.MILEY_API_KEY || "",
 		);
@@ -143,7 +163,9 @@ export class WorkerService {
 		this.logger.raw("");
 		this.logger.divider(70);
 		this.logger.info("⏸️  No repositories configured");
-		this.logger.info(`🔗 Server running on port ${serverPort}`);
+		this.logger.info(
+			`🔗 Public server on port ${serverPort}, internal on port ${internalPort}`,
+		);
 
 		if (process.env.CLOUDFLARE_TOKEN) {
 			this.logger.info("🌩️  Cloudflare tunnel: Active");
@@ -236,6 +258,10 @@ export class WorkerService {
 			webhookBaseUrl: process.env.MILEY_BASE_URL,
 			serverPort: parsePort(process.env.MILEY_SERVER_PORT, DEFAULT_SERVER_PORT),
 			serverHost: isExternalHost ? "0.0.0.0" : "localhost",
+			serverInternalPort: parsePort(
+				process.env.MILEY_INTERNAL_PORT,
+				DEFAULT_INTERNAL_PORT,
+			),
 			// platform: "cli" as const, // TODO: Enable CLI mode after fixing linearWorkspaceId flow
 			ngrokAuthToken,
 			// User access control configuration
