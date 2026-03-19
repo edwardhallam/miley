@@ -118,6 +118,9 @@ export class LinearEventTransport
 		const signature = request.headers["linear-signature"] as string;
 		if (!signature) {
 			reply.code(401).send({ error: "Missing linear-signature header" });
+			this.logger.warn(
+				"[AUDIT] POST /webhook auth=linear-signature result=rejected reason=missing-signature",
+			);
 			return;
 		}
 
@@ -133,6 +136,9 @@ export class LinearEventTransport
 
 			if (!isValid) {
 				reply.code(401).send({ error: "Invalid webhook signature" });
+				this.logger.warn(
+					"[AUDIT] POST /webhook auth=linear-signature result=rejected reason=invalid-signature",
+				);
 				return;
 			}
 
@@ -146,6 +152,7 @@ export class LinearEventTransport
 
 			// Send success response
 			reply.code(200).send({ success: true });
+			this.logger.info("[AUDIT] POST /webhook auth=linear-signature result=ok");
 		} catch (error) {
 			const err = new Error("Direct webhook verification failed");
 			if (error instanceof Error) {
@@ -153,6 +160,9 @@ export class LinearEventTransport
 			}
 			this.logger.error("Direct webhook verification failed", err);
 			reply.code(401).send({ error: "Invalid webhook signature" });
+			this.logger.warn(
+				"[AUDIT] POST /webhook auth=linear-signature result=rejected reason=verification-error",
+			);
 		}
 	}
 
@@ -167,6 +177,9 @@ export class LinearEventTransport
 		const authHeader = request.headers.authorization;
 		if (!authHeader) {
 			reply.code(401).send({ error: "Missing Authorization header" });
+			this.logger.warn(
+				"[AUDIT] POST /webhook auth=bearer result=rejected reason=missing-header",
+			);
 			return;
 		}
 
@@ -174,6 +187,9 @@ export class LinearEventTransport
 		const expectedAuth = `Bearer ${this.config.secret}`;
 		if (authHeader !== expectedAuth) {
 			reply.code(401).send({ error: "Invalid authorization token" });
+			this.logger.warn(
+				"[AUDIT] POST /webhook auth=bearer result=rejected reason=invalid-token",
+			);
 			return;
 		}
 
@@ -188,6 +204,7 @@ export class LinearEventTransport
 
 			// Send success response
 			reply.code(200).send({ success: true });
+			this.logger.info("[AUDIT] POST /webhook auth=bearer result=ok");
 		} catch (error) {
 			const err = new Error("Proxy webhook processing failed");
 			if (error instanceof Error) {
