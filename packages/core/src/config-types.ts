@@ -99,6 +99,9 @@ export interface EdgeWorkerRuntimeConfig {
 	/** Server host address ('localhost' or '0.0.0.0', default: 'localhost') */
 	serverHost?: string;
 
+	/** Internal server port for admin/MCP endpoints (localhost only, default: serverPort + 1) */
+	serverInternalPort?: number;
+
 	// --- Platform Configuration ---
 
 	/**

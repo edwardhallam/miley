@@ -392,6 +392,8 @@ export const MileyServerConfigSchema = z.object({
 	port: z.number(),
 	/** Host the server binds to (e.g., "0.0.0.0" or "localhost") */
 	host: z.string(),
+	/** Port for internal admin/MCP endpoints (localhost only, default: port + 1) */
+	internalPort: z.number().optional(),
 });
 
 /**
