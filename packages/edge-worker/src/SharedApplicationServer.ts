@@ -31,6 +31,7 @@ export interface ApprovalCallback {
  */
 export class SharedApplicationServer {
 	private app: FastifyInstance | null = null;
+	private internalApp: FastifyInstance | null = null;
 	private webhookHandlers = new Map<
 		string,
 		{
@@ -46,8 +47,10 @@ export class SharedApplicationServer {
 	private oauthCallbacks = new Map<string, OAuthCallback>();
 	private pendingApprovals = new Map<string, ApprovalCallback>();
 	private port: number;
+	private internalPort: number;
 	private host: string;
 	private isListening = false;
+	private internalIsListening = false;
 	private skipTunnel: boolean;
 	private logger: ILogger;
 
@@ -56,31 +59,25 @@ export class SharedApplicationServer {
 		host: string = "localhost",
 		skipTunnel: boolean = false,
 		logger?: ILogger,
+		internalPort?: number,
 	) {
 		this.port = port;
 		this.host = host;
+		this.internalPort = internalPort ?? port + 1;
 		this.skipTunnel = skipTunnel;
 		this.logger =
 			logger ?? createLogger({ component: "SharedApplicationServer" });
 	}
 
 	/**
-	 * Initialize the Fastify app instance (must be called before registering routes)
+	 * Register a raw body content-type parser on a Fastify instance.
+	 * Preserves the raw request body for webhook signature verification (GitHub HMAC-SHA256).
+	 * Fastify's default JSON parser discards the raw bytes, but signature checks need
+	 * the exact payload GitHub sent. This replaces the default parser with one that
+	 * stashes the raw string on `request.rawBody` before parsing.
 	 */
-	initializeFastify(): void {
-		if (this.app) {
-			return; // Already initialized
-		}
-
-		this.app = Fastify({
-			logger: false,
-		});
-
-		// Preserve raw request body for webhook signature verification (GitHub HMAC-SHA256).
-		// Fastify's default JSON parser discards the raw bytes, but signature checks need
-		// the exact payload GitHub sent. This replaces the default parser with one that
-		// stashes the raw string on `request.rawBody` before parsing.
-		this.app.addContentTypeParser(
+	private registerRawBodyParser(instance: FastifyInstance): void {
+		instance.addContentTypeParser(
 			"application/json",
 			{ parseAs: "string" },
 			(
@@ -96,6 +93,31 @@ export class SharedApplicationServer {
 				}
 			},
 		);
+	}
+
+	/**
+	 * Initialize the Fastify app instance (must be called before registering routes)
+	 */
+	initializeFastify(): void {
+		if (this.app) {
+			return; // Already initialized
+		}
+
+		this.app = Fastify({ logger: false });
+		this.registerRawBodyParser(this.app);
+		this.initializeInternalFastify();
+	}
+
+	/**
+	 * Initialize the internal Fastify instance (localhost-only server)
+	 */
+	initializeInternalFastify(): void {
+		if (this.internalApp) {
+			return; // Already initialized
+		}
+
+		this.internalApp = Fastify({ logger: false });
+		this.registerRawBodyParser(this.internalApp);
 	}
 
 	/**
@@ -118,6 +140,17 @@ export class SharedApplicationServer {
 			this.isListening = true;
 			this.logger.info(
 				`Shared application server listening on http://${this.host}:${this.port}`,
+			);
+
+			// Start internal server on localhost only
+			this.initializeInternalFastify();
+			await this.internalApp!.listen({
+				port: this.internalPort,
+				host: "127.0.0.1",
+			});
+			this.internalIsListening = true;
+			this.logger.info(
+				`Internal server listening on http://127.0.0.1:${this.internalPort}`,
 			);
 
 			// Cloudflare tunnel client removed — tunnel must be managed externally if needed
@@ -150,6 +183,12 @@ export class SharedApplicationServer {
 			this.isListening = false;
 			this.logger.info("Shared application server stopped");
 		}
+
+		if (this.internalApp && this.internalIsListening) {
+			await this.internalApp.close();
+			this.internalIsListening = false;
+			this.logger.info("Internal server stopped");
+		}
 	}
 
 	/**
@@ -166,6 +205,22 @@ export class SharedApplicationServer {
 	getFastifyInstance(): FastifyInstance {
 		this.initializeFastify();
 		return this.app!;
+	}
+
+	/**
+	 * Get the internal Fastify instance for localhost-only routes (e.g. admin endpoints)
+	 * Initializes the internal Fastify instance if not already done
+	 */
+	getInternalFastifyInstance(): FastifyInstance {
+		this.initializeInternalFastify();
+		return this.internalApp!;
+	}
+
+	/**
+	 * Get the internal server port number
+	 */
+	getInternalPort(): number {
+		return this.internalPort;
 	}
 
 	/**
