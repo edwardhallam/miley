@@ -75,6 +75,7 @@ import { AttachmentService } from "./AttachmentService.js";
 import { ConfigManager, type RepositoryChanges } from "./ConfigManager.js";
 import { GitService } from "./GitService.js";
 import { GlobalSessionRegistry } from "./GlobalSessionRegistry.js";
+import { normalizeClaudeModel } from "./normalizeClaudeModel.js";
 import { buildInitialPrompt } from "./prompt-assembly/buildInitialPrompt.js";
 import type {
 	PromptAssembly,
@@ -4587,6 +4588,12 @@ ${input.userComment}
 			repository.model ||
 			this.getDefaultModelForRunner(runnerType);
 
+		// For Claude runner, normalize bare aliases (opus/sonnet/haiku) to request
+		// 1M context window by appending [1m]. Full model IDs (claude-opus-4-6)
+		// pass through unchanged as an escape hatch for 200K context.
+		const effectiveModel =
+			runnerType === "claude" ? normalizeClaudeModel(finalModel) : finalModel;
+
 		// When disallowAllTools is true, don't provide any MCP servers to ensure
 		// the agent cannot use any tools (including MCP-provided tools like Linear create_comment)
 		const resolvedWorkspaceId =
@@ -4623,7 +4630,9 @@ ${input.userComment}
 			// so Claude cannot see or attempt tool use (distinct from allowedTools which only controls permissions)
 			...(disallowAllTools && { tools: [] }),
 			// Priority order: label override > repository config > global default
-			model: finalModel,
+			model: effectiveModel,
+			// fallbackModel intentionally NOT normalized — keeps 200K context for
+			// cost-sensitive retry path (e.g. "opus" falls back to default 200K model)
 			fallbackModel:
 				fallbackModelOverride ||
 				repository.fallbackModel ||
