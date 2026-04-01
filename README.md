@@ -4,6 +4,8 @@ A Claude Code agent for [Linear](https://linear.app). Assign an issue, get an au
 
 Miley watches your Linear workspace for issue assignments, spins up isolated git worktrees, and launches Claude Code sessions that work the issue end-to-end — reading your CLAUDE.md, using your skills, and streaming progress back to Linear as it goes.
 
+![Miley working a Linear issue](docs/images/miley-session.png)
+
 ## Why Miley
 
 Miley was built for how Claude Code actually works today: 1M token context windows, native skill invocation, and CLAUDE.md-driven behavior.
