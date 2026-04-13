@@ -4334,6 +4334,30 @@ ${taskSection}`;
 		}
 		components.push("issue-context");
 
+		// 1b. Enriched context (comments, parent/child, related issues, project, labels, plugins — NEX-651)
+		const repoPlugins = primaryRepo.plugins;
+		if (input.enrichedContext || repoPlugins?.length) {
+			const { formatEnrichedContext } = await import(
+				"./prompt-assembly/formatEnrichedContext.js"
+			);
+			const enrichedXml = formatEnrichedContext(
+				input.enrichedContext ?? {},
+				repoPlugins,
+			);
+			if (enrichedXml) {
+				parts.push(enrichedXml);
+				const ec = input.enrichedContext;
+				if (ec?.comments?.length) components.push("enriched-comments");
+				if (
+					ec?.parentIssue ||
+					ec?.childIssues?.length ||
+					ec?.relatedIssues?.length
+				)
+					components.push("enriched-relations");
+				if (ec?.project) components.push("enriched-project");
+			}
+		}
+
 		// 2. Add user comment (if present and not a mention — mentions include comment inline)
 		if (input.userComment.trim() && !input.isMentionTriggered) {
 			if (input.commentAuthor || input.commentTimestamp) {

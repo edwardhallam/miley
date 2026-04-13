@@ -51,7 +51,10 @@ export type PromptComponent =
 	| "subroutine-prompt" // Workflow guidance (e.g., coding-activity.md)
 	| "user-comment" // User's comment text
 	| "attachment-manifest" // List of attachments
-	| "guidance-rules"; // Linear agent guidance rules
+	| "guidance-rules" // Linear agent guidance rules
+	| "enriched-comments" // Comments from enrichment
+	| "enriched-relations" // Parent/child/related issues from enrichment
+	| "enriched-project"; // Project context from enrichment
 
 /**
  * Type of prompt builder used
@@ -125,6 +128,9 @@ export interface PromptAssemblyInput {
 
 	/** Linear workspace ID (from webhook.organizationId). When provided, avoids extracting from repo config. */
 	linearWorkspaceId?: string;
+
+	/** Enriched issue context from IIssueEnricher (optional — NEX-651) */
+	enrichedContext?: import("../IssueEnricher.js").EnrichedContext;
 }
 
 /**
