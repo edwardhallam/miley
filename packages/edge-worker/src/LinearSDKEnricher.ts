@@ -29,8 +29,7 @@ export class LinearSDKEnricher implements IIssueEnricher {
 					nodes.map(async (c) => {
 						const user = await c.user;
 						return {
-							author:
-								user?.displayName ?? user?.name ?? "Unknown",
+							author: user?.displayName ?? user?.name ?? "Unknown",
 							body: c.body,
 							createdAt: c.createdAt?.toISOString() ?? "",
 						};
@@ -79,8 +78,7 @@ export class LinearSDKEnricher implements IIssueEnricher {
 						relations.nodes.map(async (r) => {
 							const related = await r.relatedIssue;
 							return {
-								identifier:
-									related?.identifier ?? "Unknown",
+								identifier: related?.identifier ?? "Unknown",
 								title: related?.title ?? "",
 								relationshipType: r.type ?? "related",
 							};

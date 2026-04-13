@@ -447,10 +447,7 @@ export const MileyRepositoryConfigSchema = z.object({
 
 	// Issue enrichment configuration (NEX-651)
 	/** Enrichment strategy: "linear" (default), "directus", or "none" */
-	enricher: z
-		.enum(["linear", "directus", "none"])
-		.optional()
-		.default("linear"),
+	enricher: z.enum(["linear", "directus", "none"]).optional().default("linear"),
 
 	/** Plugin/skill chain identifiers passed through to the prompt */
 	plugins: z.array(z.string()).optional(),

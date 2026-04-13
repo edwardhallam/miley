@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatEnrichedContext } from "../src/prompt-assembly/formatEnrichedContext.js";
 import type { EnrichedContext } from "../src/IssueEnricher.js";
+import { formatEnrichedContext } from "../src/prompt-assembly/formatEnrichedContext.js";
 
 describe("formatEnrichedContext", () => {
 	it("returns empty string for empty context and no plugins", () => {
@@ -147,13 +147,9 @@ describe("formatEnrichedContext", () => {
 
 	it("formats a full context with all sections", () => {
 		const ctx: EnrichedContext = {
-			comments: [
-				{ author: "A", body: "B", createdAt: "2026-01-01T00:00:00Z" },
-			],
+			comments: [{ author: "A", body: "B", createdAt: "2026-01-01T00:00:00Z" }],
 			parentIssue: { identifier: "P-1", title: "Parent" },
-			childIssues: [
-				{ identifier: "C-1", title: "Child", stateName: "Done" },
-			],
+			childIssues: [{ identifier: "C-1", title: "Child", stateName: "Done" }],
 			relatedIssues: [
 				{
 					identifier: "R-1",

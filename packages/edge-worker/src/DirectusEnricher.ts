@@ -28,10 +28,7 @@ export class DirectusEnricher implements IIssueEnricher {
 			]);
 
 		// Directus: labels, project, parent, children
-		if (
-			directusResult.status === "fulfilled" &&
-			directusResult.value
-		) {
+		if (directusResult.status === "fulfilled" && directusResult.value) {
 			const data = directusResult.value;
 			result.labels = data.labels;
 			result.project = data.project;
@@ -105,9 +102,11 @@ export class DirectusEnricher implements IIssueEnricher {
 		if (row.parent_id) {
 			try {
 				const parentRes = await fetch(
-					`${this.directusUrl}/items/linear_issues/${row.parent_id}?${new URLSearchParams({
-						fields: "identifier,title,description",
-					})}`,
+					`${this.directusUrl}/items/linear_issues/${row.parent_id}?${new URLSearchParams(
+						{
+							fields: "identifier,title,description",
+						},
+					)}`,
 					{ headers },
 				);
 				const parentData = (await parentRes.json()) as {
@@ -121,8 +120,7 @@ export class DirectusEnricher implements IIssueEnricher {
 					result.parentIssue = {
 						identifier: parentData.data.identifier,
 						title: parentData.data.title,
-						description:
-							parentData.data.description ?? undefined,
+						description: parentData.data.description ?? undefined,
 					};
 				}
 			} catch {
@@ -192,8 +190,7 @@ export class DirectusEnricher implements IIssueEnricher {
 		const nodes = data.data?.issue?.comments?.nodes ?? [];
 		return nodes
 			.map((c) => ({
-				author:
-					c.user?.displayName ?? c.user?.name ?? "Unknown",
+				author: c.user?.displayName ?? c.user?.name ?? "Unknown",
 				body: c.body,
 				createdAt: c.createdAt ?? "",
 			}))
@@ -242,11 +239,9 @@ export class DirectusEnricher implements IIssueEnricher {
 			};
 		};
 		const forward = data.data?.issue?.relations?.nodes ?? [];
-		const inverse =
-			data.data?.issue?.inverseRelations?.nodes ?? [];
+		const inverse = data.data?.issue?.inverseRelations?.nodes ?? [];
 
-		const results: NonNullable<EnrichedContext["relatedIssues"]> =
-			[];
+		const results: NonNullable<EnrichedContext["relatedIssues"]> = [];
 		for (const r of forward) {
 			if (r.relatedIssue) {
 				results.push({

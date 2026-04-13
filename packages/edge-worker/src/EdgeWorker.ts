@@ -2706,10 +2706,7 @@ ${taskSection}`;
 		// --- Issue enrichment (NEX-651) ---
 		let enrichedContext: EnrichedContext | undefined;
 		try {
-			const enricher = this.createEnricher(
-				primaryRepo,
-				linearWorkspaceId,
-			);
+			const enricher = this.createEnricher(primaryRepo, linearWorkspaceId);
 			if (enricher) {
 				log.info(
 					`Enriching issue ${fullIssue.identifier} (strategy: ${primaryRepo.enricher ?? "linear"})`,
@@ -2726,28 +2723,20 @@ ${taskSection}`;
 					enrichedContext.project && "project",
 					enrichedContext.labels?.length && "labels",
 				].filter(Boolean);
-				log.info(
-					`Enrichment complete: ${sections.join(", ") || "no data"}`,
-				);
+				log.info(`Enrichment complete: ${sections.join(", ") || "no data"}`);
 			}
 		} catch (err) {
-			log.error(
-				`Enrichment failed for ${fullIssue.identifier}:`,
-				err,
-			);
+			log.error(`Enrichment failed for ${fullIssue.identifier}:`, err);
 			// Attempt to notify via issue tracker comment
 			try {
-				const tracker =
-					this.issueTrackers.get(linearWorkspaceId);
+				const tracker = this.issueTrackers.get(linearWorkspaceId);
 				if (tracker && fullIssue.id) {
 					await tracker.createComment(fullIssue.id, {
 						body: `⚠️ Issue enrichment failed: ${err instanceof Error ? err.message : String(err)}. Starting session with basic context (title + description only).`,
 					});
 				}
 			} catch {
-				log.error(
-					"Failed to post enrichment failure notification",
-				);
+				log.error("Failed to post enrichment failure notification");
 			}
 		}
 
@@ -3471,21 +3460,14 @@ ${taskSection}`;
 					this.logger.warn(
 						"Directus enricher requested but missing env vars (DIRECTUS_URL, DIRECTUS_ADMIN_TOKEN, LINEAR_API_KEY). Falling back to linear.",
 					);
-					const tracker =
-						this.issueTrackers.get(linearWorkspaceId);
-					return tracker
-						? new LinearSDKEnricher(tracker)
-						: null;
+					const tracker = this.issueTrackers.get(linearWorkspaceId);
+					return tracker ? new LinearSDKEnricher(tracker) : null;
 				}
 				return new DirectusEnricher(url, token, linearKey);
 			}
-			case "linear":
 			default: {
-				const tracker =
-					this.issueTrackers.get(linearWorkspaceId);
-				return tracker
-					? new LinearSDKEnricher(tracker)
-					: null;
+				const tracker = this.issueTrackers.get(linearWorkspaceId);
+				return tracker ? new LinearSDKEnricher(tracker) : null;
 			}
 		}
 	}

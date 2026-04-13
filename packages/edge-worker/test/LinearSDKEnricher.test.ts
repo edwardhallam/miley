@@ -1,6 +1,6 @@
+import type { IIssueTrackerService } from "miley-core";
 import { describe, expect, it, vi } from "vitest";
 import { LinearSDKEnricher } from "../src/LinearSDKEnricher.js";
-import type { IIssueTrackerService } from "miley-core";
 
 /** Minimal mock for IIssueTrackerService — only the methods LinearSDKEnricher calls. */
 function createMockTracker(
@@ -107,9 +107,7 @@ describe("LinearSDKEnricher", () => {
 
 	it("returns partial context when one fetch fails", async () => {
 		const tracker = createMockTracker({
-			fetchComments: vi
-				.fn()
-				.mockRejectedValue(new Error("API down")),
+			fetchComments: vi.fn().mockRejectedValue(new Error("API down")),
 			fetchIssueChildren: vi.fn().mockResolvedValue({
 				children: [
 					{
@@ -130,13 +128,9 @@ describe("LinearSDKEnricher", () => {
 
 	it("does not throw even if all fetches fail", async () => {
 		const tracker = createMockTracker({
-			fetchComments: vi
-				.fn()
-				.mockRejectedValue(new Error("fail")),
+			fetchComments: vi.fn().mockRejectedValue(new Error("fail")),
 			fetchIssue: vi.fn().mockRejectedValue(new Error("fail")),
-			fetchIssueChildren: vi
-				.fn()
-				.mockRejectedValue(new Error("fail")),
+			fetchIssueChildren: vi.fn().mockRejectedValue(new Error("fail")),
 		});
 		const enricher = new LinearSDKEnricher(tracker);
 		const ctx = await enricher.enrich("issue-id", "NEX-1");

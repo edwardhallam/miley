@@ -48,9 +48,7 @@ export function formatEnrichedContext(
 			(c) =>
 				`  <issue identifier="${escapeXml(c.identifier)}" status="${escapeXml(c.stateName)}">${escapeXml(c.title)}</issue>`,
 		);
-		sections.push(
-			`<child-issues>\n${childLines.join("\n")}\n</child-issues>`,
-		);
+		sections.push(`<child-issues>\n${childLines.join("\n")}\n</child-issues>`);
 	}
 
 	// Related issues
@@ -80,9 +78,7 @@ export function formatEnrichedContext(
 			const colorAttr = l.color ? ` color="${escapeXml(l.color)}"` : "";
 			return `  <label name="${escapeXml(l.name)}"${colorAttr} />`;
 		});
-		sections.push(
-			`<issue-labels>\n${labelLines.join("\n")}\n</issue-labels>`,
-		);
+		sections.push(`<issue-labels>\n${labelLines.join("\n")}\n</issue-labels>`);
 	}
 
 	// Plugins (from repo config, not enrichment)
