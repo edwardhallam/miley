@@ -2835,7 +2835,7 @@ ${taskSection}`;
 				primaryRepo.id,
 			);
 
-			log.debug(
+			log.info(
 				`Initial prompt built — components: ${assembly.metadata.components.join(", ")}, type: ${assembly.metadata.promptType}, length: ${assembly.userPrompt.length} chars`,
 			);
 
@@ -4322,8 +4322,8 @@ ${taskSection}`;
 		// Use unified prompt assembly
 		const assembly = await this.assemblePrompt(input);
 
-		// Log metadata for debugging
-		this.logger.debug(
+		// Log metadata for prompt assembly verification
+		this.logger.info(
 			`Built prompt - components: ${assembly.metadata.components.join(", ")}, type: ${assembly.metadata.promptType}`,
 		);
 
