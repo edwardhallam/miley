@@ -184,6 +184,14 @@ export const RepositoryConfigSchema = z.object({
 
 	// Repository-specific user access control
 	userAccessControl: UserAccessControlConfigSchema.optional(),
+
+	// Issue enrichment configuration (NEX-651)
+	/** Enrichment strategy: "linear" (default), "directus", or "none".
+	 *  Optional here — the MileyRepositoryConfigSchema applies the default. */
+	enricher: z.enum(["linear", "directus", "none"]).optional(),
+
+	/** Plugin/skill chain identifiers passed through to the prompt */
+	plugins: z.array(z.string()).optional(),
 });
 
 /**
@@ -436,6 +444,16 @@ export const MileyRepositoryConfigSchema = z.object({
 
 	// Repository-specific user access control
 	userAccessControl: UserAccessControlConfigSchema.optional(),
+
+	// Issue enrichment configuration (NEX-651)
+	/** Enrichment strategy: "linear" (default), "directus", or "none" */
+	enricher: z
+		.enum(["linear", "directus", "none"])
+		.optional()
+		.default("linear"),
+
+	/** Plugin/skill chain identifiers passed through to the prompt */
+	plugins: z.array(z.string()).optional(),
 });
 
 /**

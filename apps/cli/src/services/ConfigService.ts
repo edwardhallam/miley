@@ -55,6 +55,8 @@ function mileyConfigToEdgeConfig(miley: MileyConfig): EdgeConfig {
 			model: repo.model,
 			fallbackModel: repo.fallbackModel,
 			userAccessControl: repo.userAccessControl,
+			enricher: repo.enricher,
+			plugins: repo.plugins,
 		})),
 		// Map top-level linear block to the linearWorkspaces record format
 		linearWorkspaces: {
