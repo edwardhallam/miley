@@ -36,7 +36,8 @@ describe("MileyRepositoryConfigSchema", () => {
 	});
 
 	it("defaults preferLocalBranch to false when omitted", () => {
-		const { preferLocalBranch, ...repoWithoutPref } = validRepo;
+		const repoWithoutPref: Partial<MileyRepositoryConfig> = { ...validRepo };
+		delete repoWithoutPref.preferLocalBranch;
 		const result = MileyRepositoryConfigSchema.safeParse(repoWithoutPref);
 		expect(result.success).toBe(true);
 		expect(result.data!.preferLocalBranch).toBe(false);

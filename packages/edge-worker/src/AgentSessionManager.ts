@@ -33,7 +33,7 @@ import type {
 /**
  * Events emitted by AgentSessionManager
  */
-export type AgentSessionManagerEvents = {};
+export type AgentSessionManagerEvents = Record<never, never>;
 
 /**
  * Type-safe event emitter interface for AgentSessionManager

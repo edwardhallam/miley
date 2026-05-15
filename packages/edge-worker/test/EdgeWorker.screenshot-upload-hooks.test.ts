@@ -157,6 +157,7 @@ describe("EdgeWorker - Screenshot Upload Guidance Hooks", () => {
 				issueId: "issue-123",
 				workspace: { path: "/test/workspaces/TEST-123" },
 			}),
+			getSessionsByIssueId: vi.fn().mockReturnValue([]),
 			addAgentRunner: vi.fn(),
 			getAllAgentRunners: vi.fn().mockReturnValue([]),
 			serializeState: vi.fn().mockReturnValue({ sessions: {}, entries: {} }),

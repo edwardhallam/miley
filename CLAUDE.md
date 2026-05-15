@@ -93,7 +93,13 @@ Linear webhook (issue assigned)
 
 ## Build and Test
 
+Use Node 24 LTS with pnpm 10.13.1. Production launchd uses `/opt/homebrew/opt/node@24/bin/node`; do not rely on Homebrew's unversioned `node` if it points to a newer Current release.
+
 ```bash
+# Enable the pinned package manager
+corepack enable
+corepack prepare pnpm@10.13.1 --activate
+
 # Install dependencies
 pnpm install
 
@@ -188,6 +194,7 @@ ConfigService auto-detects MileyConfig vs legacy EdgeConfig format and converts 
 | Variable | Purpose |
 |----------|---------|
 | `ANTHROPIC_API_KEY` | Required. Claude API key |
+| `CLAUDE_CODE_OAUTH_TOKEN` | Optional Claude Code OAuth token |
 | `LINEAR_API_KEY` | Linear API token (used by MCP tools) |
 | `MILEY_API_KEY` | API key for config-updater endpoints |
 | `MILEY_SERVER_PORT` | Override public server port (default: 3457) |
@@ -195,6 +202,8 @@ ConfigService auto-detects MileyConfig vs legacy EdgeConfig format and converts 
 | `MILEY_HOST_EXTERNAL` | Set to `true` to bind 0.0.0.0 instead of localhost |
 | `CLOUDFLARE_TOKEN` | Cloudflare Tunnel token for webhook delivery |
 | `GITHUB_TOKEN` | GitHub token for PR operations |
+| `DIRECTUS_URL` | Optional Directus enricher URL |
+| `DIRECTUS_ADMIN_TOKEN` | Optional Directus enricher admin token |
 
 ### Adding a Repository
 
@@ -225,8 +234,18 @@ Key fields:
 - **Public port**: 3457 (webhooks, /status, /version — exposed via CF Tunnel)
 - **Internal port**: 3458 (admin /api/update/*, /mcp/miley-tools — localhost only)
 - **Service**: `com.miley.agent` (launchd)
+- **Runtime**: Node 24 LTS at `/opt/homebrew/opt/node@24/bin/node`
 - **Config directory**: `~/.miley/` (config.json, .env, logs/, state/)
 - **Worktrees**: `<repositoryPath>/.worktrees/<issue-id>/`
+- **GitHub Actions runner**: repo-scoped Mac Studio runner `mac-studio-miley-deploy` with labels `self-hosted`, `macOS`, `ARM64`, `miley-deploy`, `mac-studio`
+
+### GitHub Actions
+
+- `CI / verify` runs on GitHub-hosted Ubuntu with Node 24 for PRs, `main`, Renovate branches, and manual dispatch.
+- Production deploy runs only for trusted `push` events to `main` after `verify` passes.
+- The deploy job must be the only job using the Mac Studio self-hosted runner. Do not route public-repo PR code to self-hosted runners.
+- Deploy updates `/Users/edwardhallam/code/miley`, runs `pnpm install --frozen-lockfile --strict-peer-dependencies`, builds, restarts launchd, and smokes local `/status`, local `/version`, and public `https://miley.spicyeddie.com/status`.
+- Rollback is a normal git revert or reset to a known-good commit in `/Users/edwardhallam/code/miley`, followed by `pnpm install`, `pnpm build`, and `launchctl bootout/bootstrap`.
 
 ### Service Management
 

@@ -33,9 +33,13 @@ Linear issue assigned
 
 ### 1. Install and build
 
+Miley supports Node 24 LTS and pnpm 10.13.1.
+
 ```bash
 git clone https://github.com/edwardhallam/miley.git
 cd miley
+corepack enable
+corepack prepare pnpm@10.13.1 --activate
 pnpm install
 pnpm -r build
 ```
@@ -69,7 +73,7 @@ Create `~/.miley/config.json`:
 }
 ```
 
-Create `~/.miley/.env`:
+Create `~/.miley/.env` from `.env.example`. Runtime secrets live in the `nexus` 1Password vault item `Miley production environment`.
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
@@ -93,6 +97,20 @@ node apps/cli/dist/src/app.js
 ```
 
 Or set up as a system service (launchd, systemd, etc.).
+
+## CI and Deployment
+
+GitHub Actions runs `CI / verify` on GitHub-hosted Ubuntu with Node 24 for pull requests, pushes to `main`, Renovate branches, and manual dispatches.
+
+Production deploy runs only after `CI / verify` succeeds on a trusted `main` push. The deploy job targets the repo-scoped Mac Studio self-hosted runner with labels `self-hosted`, `macOS`, `ARM64`, `miley-deploy`, and `mac-studio`; PR code must never run on that runner because this repository is public.
+
+The deploy job updates `/Users/edwardhallam/code/miley`, installs dependencies, builds, restarts `launchd` service `com.miley.agent`, and smoke-tests:
+
+```bash
+curl -fsS http://127.0.0.1:3457/status
+curl -fsS http://127.0.0.1:3457/version
+curl -fsS https://miley.spicyeddie.com/status
+```
 
 ## Configuration
 
@@ -164,6 +182,8 @@ Your appendInstruction text here.
 ## Development
 
 ```bash
+corepack enable
+corepack prepare pnpm@10.13.1 --activate
 pnpm install          # install dependencies
 pnpm -r build         # build all packages
 pnpm -r test          # run tests

@@ -1,10 +1,10 @@
 import { LinearClient } from "@linear/sdk";
 import { ClaudeRunner } from "miley-claude-runner";
 import { LinearEventTransport } from "miley-linear-event-transport";
-import { createMileyToolsServer } from "miley-mcp-tools";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentSessionManager } from "../src/AgentSessionManager.js";
 import { EdgeWorker } from "../src/EdgeWorker.js";
+import { createMileyToolsServer } from "../src/removed-package-stubs.js";
 import { SharedApplicationServer } from "../src/SharedApplicationServer.js";
 import type { EdgeWorkerConfig, RepositoryConfig } from "../src/types.js";
 import { TEST_MILEY_HOME } from "./test-dirs.js";
@@ -12,12 +12,18 @@ import { TEST_MILEY_HOME } from "./test-dirs.js";
 // Mock all dependencies
 vi.mock("fs/promises");
 vi.mock("miley-claude-runner");
-vi.mock("miley-mcp-tools");
 vi.mock("miley-codex-runner");
 vi.mock("miley-linear-event-transport");
 vi.mock("@linear/sdk");
 vi.mock("../src/SharedApplicationServer.js");
 vi.mock("../src/AgentSessionManager.js");
+vi.mock("../src/removed-package-stubs.js", async (importOriginal) => {
+	const actual = (await importOriginal()) as any;
+	return {
+		...actual,
+		createMileyToolsServer: vi.fn(),
+	};
+});
 vi.mock("miley-core", async (importOriginal) => {
 	const actual = (await importOriginal()) as any;
 	return {

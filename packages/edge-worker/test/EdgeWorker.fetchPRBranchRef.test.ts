@@ -36,6 +36,23 @@ describe("EdgeWorker - fetchPRBranchRefs", () => {
 	let mockAgentSessionManager: any;
 	let mockRepository: RepositoryConfig;
 
+	const pullRequestCommentPayload = {
+		...issueCommentPayload,
+		issue: {
+			...issueCommentPayload.issue,
+			number: 42,
+			pull_request: {
+				url: "https://api.github.com/repos/testorg/my-repo/pulls/42",
+			},
+		},
+		repository: {
+			...issueCommentPayload.repository,
+			name: "my-repo",
+			full_name: "testorg/my-repo",
+			owner: { login: "testorg" },
+		},
+	};
+
 	beforeEach(() => {
 		vi.clearAllMocks();
 
@@ -132,7 +149,7 @@ describe("EdgeWorker - fetchPRBranchRefs", () => {
 			const eventWithToken: GitHubWebhookEvent = {
 				eventType: "issue_comment",
 				deliveryId: "test-delivery-id",
-				payload: issueCommentPayload,
+				payload: pullRequestCommentPayload,
 				installationToken: "ghs_forwarded_installation_token_123",
 			};
 
@@ -181,7 +198,7 @@ describe("EdgeWorker - fetchPRBranchRefs", () => {
 			const eventWithoutToken: GitHubWebhookEvent = {
 				eventType: "issue_comment",
 				deliveryId: "test-delivery-id",
-				payload: issueCommentPayload,
+				payload: pullRequestCommentPayload,
 			};
 
 			// Mock GitHub API response
@@ -231,7 +248,7 @@ describe("EdgeWorker - fetchPRBranchRefs", () => {
 			const eventWithoutToken: GitHubWebhookEvent = {
 				eventType: "issue_comment",
 				deliveryId: "test-delivery-id",
-				payload: issueCommentPayload,
+				payload: pullRequestCommentPayload,
 			};
 
 			// Mock GitHub API response (this will fail with 404 for private repos)

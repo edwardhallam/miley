@@ -4,6 +4,10 @@
 	"private": true,
 	"description": "Linear-to-Claude Code bridge agent",
 	"packageManager": "pnpm@10.13.1",
+	"engines": {
+		"node": ">=24 <25",
+		"pnpm": "10.13.1"
+	},
 	"type": "module",
 	"scripts": {
 		"build": "pnpm -r build",

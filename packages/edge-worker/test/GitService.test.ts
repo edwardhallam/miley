@@ -8,7 +8,7 @@ vi.mock("node:child_process", () => ({
 }));
 
 vi.mock("node:fs", () => ({
-	existsSync: vi.fn(() => true),
+	existsSync: vi.fn(() => false),
 	mkdirSync: vi.fn(),
 	statSync: vi.fn(),
 }));
@@ -35,6 +35,7 @@ describe("GitService", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		mockExistsSync.mockReturnValue(false);
 		gitService = new GitService(mockLogger);
 	});
 

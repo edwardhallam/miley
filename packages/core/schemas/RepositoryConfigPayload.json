@@ -470,6 +470,16 @@
 				}
 			},
 			"additionalProperties": false
+		},
+		"enricher": {
+			"type": "string",
+			"enum": ["linear", "directus", "none"]
+		},
+		"plugins": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
 		}
 	},
 	"required": ["id", "name", "repositoryPath", "baseBranch"],

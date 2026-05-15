@@ -112,7 +112,7 @@ export class AskUserQuestionHandler {
 			};
 		}
 
-		const question = input.questions[0]!;
+		const question: AskUserQuestion = input.questions[0]!;
 		this.logger.debug(
 			`Handling question for session ${linearAgentSessionId}: ${question.header}`,
 		);
