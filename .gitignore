@@ -32,11 +32,5 @@ coverage/
 Thumbs.db
 workspaces
 
-**/.claude/settings.local.json
-
-.env.secret-agents
-
 # Edge config
 .edge-config.json
-
-CLAUDE.local.md

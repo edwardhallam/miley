@@ -2857,11 +2857,11 @@ ${taskSection}`;
 
 	/**
 	 * Handle stop signal from prompted webhook
-	 * Branch 1 of agentSessionPrompted (see packages/CLAUDE.md)
+	 * Branch 1 of agentSessionPrompted.
 	 *
 	 * IMPORTANT: Stop signals do NOT require repository lookup.
-	 * The session must already exist (per CLAUDE.md), so we search
-	 * all agent session managers to find it.
+	 * The session must already exist, so we search all agent session managers
+	 * to find it.
 	 */
 	private async handleStopSignal(
 		webhook: AgentSessionPromptedWebhook,
@@ -2914,7 +2914,7 @@ ${taskSection}`;
 
 	/**
 	 * Handle repository selection response from prompted webhook
-	 * Branch 2 of agentSessionPrompted (see packages/CLAUDE.md)
+	 * Branch 2 of agentSessionPrompted.
 	 *
 	 * This method extracts the user's repository selection from their response,
 	 * or uses the fallback repository if their message doesn't match any option.
@@ -3029,7 +3029,7 @@ ${taskSection}`;
 
 	/**
 	 * Handle normal prompted activity (existing session continuation)
-	 * Branch 3 of agentSessionPrompted (see packages/CLAUDE.md)
+	 * Branch 3 of agentSessionPrompted.
 	 */
 	private async handleNormalPromptedActivity(
 		webhook: AgentSessionPromptedWebhook,
@@ -3240,7 +3240,7 @@ ${taskSection}`;
 
 	/**
 	 * Handle user-prompted agent activity webhook
-	 * Implements three-branch architecture from packages/CLAUDE.md:
+	 * Implements the three-branch prompted webhook contract:
 	 *   1. Stop signal - terminate existing runner
 	 *   2. Repository selection response - initialize Claude runner for first time
 	 *   3. Normal prompted activity - continue existing session or create new one
@@ -4714,6 +4714,8 @@ ${input.userComment}
 			);
 		}
 
+		const claudePlugins = this.buildClaudePlugins(runnerType);
+
 		const config = {
 			workingDirectory: session.workspace.path,
 			allowedTools,
@@ -4737,14 +4739,7 @@ ${input.userComment}
 				this.getDefaultFallbackModelForRunner(runnerType),
 			logger: log,
 			hooks,
-			// Load superpowers plugin via SDK plugins option for proper Skill tool
-			// registration. Previous hangs were caused by CLAUDECODE env var (now fixed).
-			plugins: [
-				{
-					type: "local" as const,
-					path: "/Users/edwardhallam/.claude/plugins/cache/claude-plugins-official/superpowers/5.0.2",
-				},
-			],
+			...(claudePlugins.length > 0 && { plugins: claudePlugins }),
 			// Enable Chrome integration for Claude runner (disabled for other runners)
 			...(runnerType === "claude" && { extraArgs: { chrome: null } }),
 			// AskUserQuestion callback - only for Claude runner
@@ -4794,6 +4789,22 @@ ${input.userComment}
 		}
 
 		return { config, runnerType };
+	}
+
+	private buildClaudePlugins(
+		runnerType: RunnerType,
+	): Array<{ type: "local"; path: string }> {
+		if (runnerType !== "claude") {
+			return [];
+		}
+
+		const superpowersPluginPath =
+			process.env.MILEY_CLAUDE_SUPERPOWERS_PLUGIN_PATH;
+		if (!superpowersPluginPath) {
+			return [];
+		}
+
+		return [{ type: "local", path: resolvePath(superpowersPluginPath) }];
 	}
 
 	/**

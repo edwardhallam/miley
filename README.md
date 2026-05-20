@@ -73,7 +73,7 @@ Create `~/.miley/config.json`:
 }
 ```
 
-Create `~/.miley/.env` from `.env.example`. Runtime secrets live in the `nexus` 1Password vault item `Miley production environment`.
+Create `~/.miley/.env` from `.env.example`.
 
 ```bash
 ANTHROPIC_API_KEY=sk-ant-...
@@ -83,6 +83,7 @@ GITHUB_TOKEN=ghp_...
 # Optional
 MILEY_API_KEY=your-api-key-for-config-endpoints
 CLOUDFLARE_TOKEN=your-tunnel-token
+MILEY_CLAUDE_SUPERPOWERS_PLUGIN_PATH=/path/to/superpowers/plugin
 MILEY_LOG_LEVEL=INFO
 ```
 
@@ -98,19 +99,13 @@ node apps/cli/dist/src/app.js
 
 Or set up as a system service (launchd, systemd, etc.).
 
-## CI and Deployment
+## CI
 
 GitHub Actions runs `CI / verify` on GitHub-hosted Ubuntu with Node 24 for pull requests, pushes to `main`, Renovate branches, and manual dispatches.
 
-Production deploy runs only after `CI / verify` succeeds on a trusted `main` push. The deploy job targets the repo-scoped Mac Studio self-hosted runner with labels `self-hosted`, `macOS`, `ARM64`, `miley-deploy`, and `mac-studio`; PR code must never run on that runner because this repository is public.
-
-The deploy job updates `/Users/edwardhallam/code/miley`, installs dependencies, builds, restarts `launchd` service `com.miley.agent`, and smoke-tests:
-
-```bash
-curl -fsS http://127.0.0.1:3457/status
-curl -fsS http://127.0.0.1:3457/version
-curl -fsS https://miley.spicyeddie.com/status
-```
+Deployment is intentionally operator-owned. This public repository documents
+the application and CI contract; host-specific deployment details should live in
+private operations documentation.
 
 ## Configuration
 

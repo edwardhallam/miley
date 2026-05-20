@@ -21,12 +21,12 @@ import {
 describe("MileyRepositoryConfigSchema", () => {
 	const validRepo: MileyRepositoryConfig = {
 		id: "uuid-123",
-		name: "nexus",
-		repositoryPath: "/Users/edwardhallam/obsidian/nexus",
+		name: "example-service",
+		repositoryPath: "/home/example/code/example-service",
 		baseBranch: "main",
 		preferLocalBranch: true,
-		projectKeys: ["n8n", "nexus"],
-		teamKeys: ["NEX"],
+		projectKeys: ["automation", "service"],
+		teamKeys: ["APP"],
 		isActive: true,
 	};
 
@@ -125,7 +125,7 @@ describe("MileyConfigSchema", () => {
 		linear: {
 			token: "lin_oauth_abc123",
 			workspaceId: "ws-abc",
-			workspaceName: "edwardhallam",
+			workspaceName: "example-workspace",
 		},
 		repositories: [],
 	};
@@ -200,19 +200,19 @@ describe("MileyConfigSchema", () => {
 			repositories: [
 				{
 					id: "uuid-1",
-					name: "nexus",
-					repositoryPath: "/Users/edwardhallam/obsidian/nexus",
+					name: "example-service",
+					repositoryPath: "/home/example/code/example-service",
 					baseBranch: "main",
 					preferLocalBranch: true,
-					projectKeys: ["n8n", "nexus"],
-					teamKeys: ["NEX"],
+					projectKeys: ["automation", "service"],
+					teamKeys: ["APP"],
 					appendInstruction: "Always check CLAUDE.md first",
 					isActive: true,
 				},
 				{
 					id: "uuid-2",
 					name: "webapp",
-					repositoryPath: "/Users/edwardhallam/code/webapp",
+					repositoryPath: "/home/example/code/webapp",
 					baseBranch: "develop",
 					projectKeys: ["web"],
 					teamKeys: ["WEB"],
@@ -243,15 +243,15 @@ describe("MileyConfig worktree path computation", () => {
 	it("worktree path is repositoryPath + /.worktrees/", () => {
 		const repo: MileyRepositoryConfig = {
 			id: "uuid-1",
-			name: "nexus",
-			repositoryPath: "/Users/edwardhallam/obsidian/nexus",
+			name: "example-service",
+			repositoryPath: "/home/example/code/example-service",
 			baseBranch: "main",
 			preferLocalBranch: false,
 		};
 		// The worktree path is NOT stored in config — it's computed
 		const expectedWorktreePath = `${repo.repositoryPath}/.worktrees`;
 		expect(expectedWorktreePath).toBe(
-			"/Users/edwardhallam/obsidian/nexus/.worktrees",
+			"/home/example/code/example-service/.worktrees",
 		);
 	});
 });
