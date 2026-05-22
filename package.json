@@ -44,7 +44,7 @@
 		"typescript": "^5.9.3"
 	},
 	"dependencies": {
-		"@linear/sdk": "60.0.0"
+		"@linear/sdk": "60.0.1"
 	},
 	"pnpm": {
 		"overrides": {
