@@ -17,8 +17,8 @@ importers:
   .:
     dependencies:
       '@linear/sdk':
-        specifier: 60.0.0
-        version: 60.0.0
+        specifier: 60.0.1
+        version: 60.0.1
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.1.3
@@ -786,8 +786,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@linear/sdk@60.0.0':
-    resolution: {integrity: sha512-6mllj354yC4iJ3euXvijisCQdTIlr77gpUl9Oit8qJYGXegtHZv+RwySdiLfNS6bXQy/Z5e0IYXXNg2sv9UrUQ==}
+  '@linear/sdk@60.0.1':
+    resolution: {integrity: sha512-aQwWxycTwvEFBMA9dQp8LiyB9Msiwikk8a8oVQ7XxfHiUZ6I6SrkQV8QJ0NYdfucTqFZzY8XB3Nc/GO3aSFatQ==}
     engines: {node: '>=12.x', yarn: 1.x}
 
   '@linear/sdk@64.0.0':
@@ -2724,7 +2724,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@linear/sdk@60.0.0':
+  '@linear/sdk@60.0.1':
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@15.10.1)
       graphql: 15.10.1
