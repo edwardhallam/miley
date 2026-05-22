@@ -88,7 +88,7 @@ importers:
         specifier: ^2.0.22
         version: 2.0.22
       typescript:
-        specifier: ^5.3.3
+        specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^3.1.4
@@ -128,7 +128,7 @@ importers:
         specifier: ^4.19.2
         version: 4.20.6
       typescript:
-        specifier: ^5.3.3
+        specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^3.1.4
@@ -153,7 +153,7 @@ importers:
         specifier: ^20.12.7
         version: 20.19.41
       typescript:
-        specifier: ^5.4.5
+        specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^3.1.4
@@ -181,7 +181,7 @@ importers:
         specifier: ^4.20.6
         version: 4.20.6
       typescript:
-        specifier: ^5.3.3
+        specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^3.1.4
@@ -236,7 +236,7 @@ importers:
         specifier: ^1.13.5
         version: 1.13.5
       typescript:
-        specifier: ^5.3.3
+        specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^3.1.4
@@ -261,7 +261,7 @@ importers:
         specifier: ^20.0.0
         version: 20.19.41
       typescript:
-        specifier: ^5.3.3
+        specifier: ^5.9.3
         version: 5.9.3
       vitest:
         specifier: ^3.2.4
