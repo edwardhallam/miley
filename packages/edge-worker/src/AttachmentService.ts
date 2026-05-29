@@ -7,6 +7,7 @@ import type {
 	Issue,
 	LinearWorkspaceConfig,
 } from "miley-core";
+import { getLinearAuthorizationHeader } from "miley-core";
 
 export class AttachmentService {
 	private logger: ILogger;
@@ -221,7 +222,7 @@ export class AttachmentService {
 
 			const response = await fetch(attachmentUrl, {
 				headers: {
-					Authorization: `Bearer ${linearToken}`,
+					Authorization: getLinearAuthorizationHeader(linearToken),
 				},
 			});
 

@@ -1,4 +1,5 @@
 import http from "node:http";
+import { getLinearAuthorizationHeader } from "miley-core";
 import open from "open";
 import { CLIPrompts } from "../ui/CLIPrompts.js";
 import { BaseCommand } from "./ICommand.js";
@@ -14,7 +15,7 @@ async function checkLinearToken(
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: token,
+				Authorization: getLinearAuthorizationHeader(token),
 			},
 			body: JSON.stringify({
 				query: "{ viewer { id email name } }",

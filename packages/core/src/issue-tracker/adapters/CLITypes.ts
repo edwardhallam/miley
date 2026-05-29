@@ -376,6 +376,14 @@ export function createCLIIssue(
 		): Promise<Connection<LinearSDK.Attachment>> {
 			return Promise.resolve({ nodes: [] });
 		},
+		relations(
+			_variables?: Omit<
+				LinearSDK.LinearDocument.Issue_RelationsQueryVariables,
+				"id"
+			>,
+		): Promise<Connection<IssueRelation>> {
+			return Promise.resolve({ nodes: [] });
+		},
 		inverseRelations(
 			_variables?: Omit<
 				LinearSDK.LinearDocument.Issue_InverseRelationsQueryVariables,

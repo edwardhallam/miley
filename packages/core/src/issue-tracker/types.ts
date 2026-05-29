@@ -94,6 +94,12 @@ export type Issue = Pick<
 		>,
 	): Promise<Connection<Issue>>;
 	// Issue relations method for blocked-by/blocks relationships
+	relations(
+		variables?: Omit<
+			LinearSDK.LinearDocument.Issue_RelationsQueryVariables,
+			"id"
+		>,
+	): Promise<Connection<IssueRelation>>;
 	inverseRelations(
 		variables?: Omit<
 			LinearSDK.LinearDocument.Issue_InverseRelationsQueryVariables,

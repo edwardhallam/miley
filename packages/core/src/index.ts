@@ -138,6 +138,11 @@ export {
 	isIssueUnassignedWebhook,
 	isNewCommentEvent,
 } from "./issue-tracker/index.js";
+export {
+	createLinearClientFromToken,
+	getLinearAuthorizationHeader,
+	isLinearApiKey,
+} from "./linear-auth.js";
 export type {
 	BaseBranchResolution,
 	IssueContext,

@@ -70,20 +70,43 @@ export class LinearSDKEnricher implements IIssueEnricher {
 				}));
 			}
 
-			// inverseRelations only — known limitation (see spec)
+			// Fetch both relation directions to match the Directus-era enricher.
 			try {
-				const relations = await issue.inverseRelations();
-				if (relations.nodes.length > 0) {
-					result.relatedIssues = await Promise.all(
-						relations.nodes.map(async (r) => {
-							const related = await r.relatedIssue;
-							return {
-								identifier: related?.identifier ?? "Unknown",
-								title: related?.title ?? "",
+				const [forwardRelationsResult, inverseRelationsResult] =
+					await Promise.allSettled([
+						issue.relations(),
+						issue.inverseRelations(),
+					]);
+				const relatedIssues: NonNullable<EnrichedContext["relatedIssues"]> = [];
+
+				if (forwardRelationsResult.status === "fulfilled") {
+					for (const r of forwardRelationsResult.value.nodes) {
+						const related = await r.relatedIssue;
+						if (related) {
+							relatedIssues.push({
+								identifier: related.identifier,
+								title: related.title,
 								relationshipType: r.type ?? "related",
-							};
-						}),
-					);
+							});
+						}
+					}
+				}
+
+				if (inverseRelationsResult.status === "fulfilled") {
+					for (const r of inverseRelationsResult.value.nodes) {
+						const related = await r.issue;
+						if (related) {
+							relatedIssues.push({
+								identifier: related.identifier,
+								title: related.title,
+								relationshipType: `inverse-${r.type ?? "related"}`,
+							});
+						}
+					}
+				}
+
+				if (relatedIssues.length > 0) {
+					result.relatedIssues = relatedIssues;
 				}
 			} catch {
 				// Relations may not be available — non-critical

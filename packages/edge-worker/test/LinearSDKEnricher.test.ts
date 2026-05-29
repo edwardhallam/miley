@@ -12,6 +12,7 @@ function createMockTracker(
 			parent: Promise.resolve(undefined),
 			project: Promise.resolve(undefined),
 			labels: vi.fn().mockResolvedValue({ nodes: [] }),
+			relations: vi.fn().mockResolvedValue({ nodes: [] }),
 			inverseRelations: vi.fn().mockResolvedValue({ nodes: [] }),
 		}),
 		fetchIssueChildren: vi
@@ -71,6 +72,7 @@ describe("LinearSDKEnricher", () => {
 				}),
 				project: Promise.resolve(undefined),
 				labels: vi.fn().mockResolvedValue({ nodes: [] }),
+				relations: vi.fn().mockResolvedValue({ nodes: [] }),
 				inverseRelations: vi.fn().mockResolvedValue({ nodes: [] }),
 			}),
 		});
@@ -102,6 +104,53 @@ describe("LinearSDKEnricher", () => {
 
 		expect(ctx.childIssues).toEqual([
 			{ identifier: "NEX-2", title: "Child", stateName: "Building" },
+		]);
+	});
+
+	it("populates forward and inverse related issues", async () => {
+		const tracker = createMockTracker({
+			fetchIssue: vi.fn().mockResolvedValue({
+				parent: Promise.resolve(undefined),
+				project: Promise.resolve(undefined),
+				labels: vi.fn().mockResolvedValue({ nodes: [] }),
+				relations: vi.fn().mockResolvedValue({
+					nodes: [
+						{
+							type: "blocks",
+							relatedIssue: Promise.resolve({
+								identifier: "NEX-2",
+								title: "Blocked",
+							}),
+						},
+					],
+				}),
+				inverseRelations: vi.fn().mockResolvedValue({
+					nodes: [
+						{
+							type: "related",
+							issue: Promise.resolve({
+								identifier: "NEX-3",
+								title: "Related",
+							}),
+						},
+					],
+				}),
+			}),
+		});
+		const enricher = new LinearSDKEnricher(tracker);
+		const ctx = await enricher.enrich("issue-id", "NEX-1");
+
+		expect(ctx.relatedIssues).toEqual([
+			{
+				identifier: "NEX-2",
+				title: "Blocked",
+				relationshipType: "blocks",
+			},
+			{
+				identifier: "NEX-3",
+				title: "Related",
+				relationshipType: "inverse-related",
+			},
 		]);
 	});
 

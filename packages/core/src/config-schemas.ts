@@ -384,7 +384,7 @@ export function migrateEdgeConfig(
  * Single workspace — no longer a per-repo or record-keyed structure.
  */
 export const MileyLinearConfigSchema = z.object({
-	/** Linear OAuth access token */
+	/** Linear OAuth access token or personal API key */
 	token: z.string(),
 	/** Linear workspace ID */
 	workspaceId: z.string(),

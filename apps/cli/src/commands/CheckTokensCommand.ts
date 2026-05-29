@@ -1,3 +1,4 @@
+import { getLinearAuthorizationHeader } from "miley-core";
 import { BaseCommand } from "./ICommand.js";
 
 /**
@@ -11,7 +12,7 @@ async function checkLinearToken(
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				Authorization: token,
+				Authorization: getLinearAuthorizationHeader(token),
 			},
 			body: JSON.stringify({
 				query: "{ viewer { id email name } }",

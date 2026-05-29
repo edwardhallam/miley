@@ -50,7 +50,11 @@ import type {
 	User,
 	WorkflowState,
 } from "miley-core";
-import { createLogger, type ILogger } from "miley-core";
+import {
+	createLogger,
+	getLinearAuthorizationHeader,
+	type ILogger,
+} from "miley-core";
 import { LinearEventTransport } from "./LinearEventTransport.js";
 
 /**
@@ -159,7 +163,10 @@ export class LinearIssueTrackerService implements IIssueTrackerService {
 
 					try {
 						const newToken = await this.refreshPromise;
-						client.setHeader("Authorization", `Bearer ${newToken}`);
+						client.setHeader(
+							"Authorization",
+							getLinearAuthorizationHeader(newToken),
+						);
 
 						// Retry the request with the new token (marked as retry to prevent loops)
 						return (await (client.request as any)(
@@ -295,7 +302,10 @@ export class LinearIssueTrackerService implements IIssueTrackerService {
 		this.refreshPromise = null;
 		// Guard for test mocks that may not have the .client property
 		if (this.linearClient.client) {
-			this.linearClient.client.setHeader("Authorization", `Bearer ${token}`);
+			this.linearClient.client.setHeader(
+				"Authorization",
+				getLinearAuthorizationHeader(token),
+			);
 		}
 	}
 

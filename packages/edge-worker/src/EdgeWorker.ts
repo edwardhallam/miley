@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { EventEmitter } from "node:events";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
-import { LinearClient } from "@linear/sdk";
+import type { LinearClient } from "@linear/sdk";
 import { Sessions, streamableHttp } from "fastify-mcp";
 import type {
 	HookCallbackMatcher,
@@ -45,8 +45,10 @@ import type {
 import {
 	CLIIssueTrackerService,
 	CLIRPCServer,
+	createLinearClientFromToken,
 	createLogger,
 	DEFAULT_PROXY_URL,
+	getLinearAuthorizationHeader,
 	isAgentSessionCreatedWebhook,
 	isAgentSessionPromptedWebhook,
 	isContentUpdateMessage,
@@ -345,9 +347,7 @@ export class EdgeWorker extends EventEmitter {
 								return service;
 							})()
 						: new LinearIssueTrackerService(
-								new LinearClient({
-									accessToken: wsConfig.linearToken,
-								}),
+								createLinearClientFromToken(wsConfig.linearToken),
 								this.buildOAuthConfig(linearWorkspaceId),
 							);
 				this.issueTrackers.set(linearWorkspaceId, issueTracker);
@@ -1516,9 +1516,7 @@ ${taskSection}`;
 									return service;
 								})()
 							: new LinearIssueTrackerService(
-									new LinearClient({
-										accessToken: linearToken,
-									}),
+									createLinearClientFromToken(linearToken),
 									this.buildOAuthConfig(requireLinearWorkspaceId(repo)),
 								);
 					this.issueTrackers.set(requireLinearWorkspaceId(repo), issueTracker);
@@ -1593,9 +1591,7 @@ ${taskSection}`;
 									return service;
 								})()
 							: new LinearIssueTrackerService(
-									new LinearClient({
-										accessToken: currentToken,
-									}),
+									createLinearClientFromToken(currentToken),
 									this.buildOAuthConfig(requireLinearWorkspaceId(repo)),
 								);
 					this.issueTrackers.set(
@@ -4193,7 +4189,7 @@ ${taskSection}`;
 				type: "http",
 				url: "https://mcp.linear.app/mcp",
 				headers: {
-					Authorization: `Bearer ${linearToken}`,
+					Authorization: getLinearAuthorizationHeader(linearToken),
 				},
 			},
 			"miley-tools": {
