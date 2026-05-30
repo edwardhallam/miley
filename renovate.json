@@ -1,5 +1,14 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
 	"extends": ["local>edwardhallam/renovate-config"],
-	"includeForks": true
+	"forkProcessing": "enabled",
+	"packageRules": [
+		{
+			"description": "zod is pinned by pnpm workspace overrides and upstream peer constraints; require manual coordination.",
+			"matchManagers": ["npm"],
+			"matchPackageNames": ["zod"],
+			"dependencyDashboardApproval": true,
+			"automerge": false
+		}
+	]
 }
