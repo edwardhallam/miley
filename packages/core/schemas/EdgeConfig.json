@@ -478,7 +478,7 @@
 					},
 					"enricher": {
 						"type": "string",
-						"enum": ["linear", "directus", "none"]
+						"enum": ["linear", "none"]
 					},
 					"plugins": {
 						"type": "array",

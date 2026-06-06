@@ -70,7 +70,7 @@ export class LinearSDKEnricher implements IIssueEnricher {
 				}));
 			}
 
-			// Fetch both relation directions to match the Directus-era enricher.
+			// Fetch both relation directions for complete relationship context.
 			try {
 				const [forwardRelationsResult, inverseRelationsResult] =
 					await Promise.allSettled([
