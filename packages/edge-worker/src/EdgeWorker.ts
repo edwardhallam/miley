@@ -75,7 +75,6 @@ import { AgentSessionManager } from "./AgentSessionManager.js";
 import { AskUserQuestionHandler } from "./AskUserQuestionHandler.js";
 import { AttachmentService } from "./AttachmentService.js";
 import { ConfigManager, type RepositoryChanges } from "./ConfigManager.js";
-import { DirectusEnricher } from "./DirectusEnricher.js";
 import { GitService } from "./GitService.js";
 import { GlobalSessionRegistry } from "./GlobalSessionRegistry.js";
 import type { EnrichedContext, IIssueEnricher } from "./IssueEnricher.js";
@@ -3448,19 +3447,6 @@ ${taskSection}`;
 		switch (enricherType) {
 			case "none":
 				return null;
-			case "directus": {
-				const url = process.env.DIRECTUS_URL;
-				const token = process.env.DIRECTUS_ADMIN_TOKEN;
-				const linearKey = process.env.LINEAR_API_KEY;
-				if (!url || !token || !linearKey) {
-					this.logger.warn(
-						"Directus enricher requested but missing env vars (DIRECTUS_URL, DIRECTUS_ADMIN_TOKEN, LINEAR_API_KEY). Falling back to linear.",
-					);
-					const tracker = this.issueTrackers.get(linearWorkspaceId);
-					return tracker ? new LinearSDKEnricher(tracker) : null;
-				}
-				return new DirectusEnricher(url, token, linearKey);
-			}
 			default: {
 				const tracker = this.issueTrackers.get(linearWorkspaceId);
 				return tracker ? new LinearSDKEnricher(tracker) : null;
