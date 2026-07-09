@@ -35,3 +35,6 @@ workspaces
 
 # Edge config
 .edge-config.json
+
+# Obsidian editor state (vault-adjacent folder; never track)
+.obsidian/
