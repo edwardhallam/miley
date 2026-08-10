@@ -52,7 +52,7 @@ importers:
         version: 5.2.1(supports-color@5.5.0)
       fastify:
         specifier: ^5.8.1
-        version: 5.11.0
+        version: 5.11.2
       file-type:
         specifier: ^21.0.0
         version: 21.3.4(supports-color@5.5.0)
@@ -144,7 +144,7 @@ importers:
         version: 1.30.0(supports-color@7.2.0)(zod@4.4.3)
       fastify:
         specifier: ^5.8.1
-        version: 5.11.0
+        version: 5.11.2
       miley-core:
         specifier: workspace:*
         version: link:../core
@@ -179,7 +179,7 @@ importers:
         version: 20.19.43
       fastify:
         specifier: ^5.8.1
-        version: 5.11.0
+        version: 5.11.2
       tsx:
         specifier: ^4.20.6
         version: 4.23.1
@@ -203,7 +203,7 @@ importers:
         version: 4.0.3
       fastify:
         specifier: ^5.8.1
-        version: 5.11.0
+        version: 5.11.2
       fastify-mcp:
         specifier: ^2.1.0
         version: 2.1.0(supports-color@7.2.0)(zod@4.4.3)
@@ -255,7 +255,7 @@ importers:
         version: 64.0.0
       fastify:
         specifier: ^5.8.1
-        version: 5.11.0
+        version: 5.11.2
       miley-core:
         specifier: workspace:*
         version: link:../core
@@ -1294,8 +1294,8 @@ packages:
   fastify-mcp@2.1.0:
     resolution: {integrity: sha512-nx1Es7kEqzYe3COWwqdzQbtjgGJVKXFow6pd6rKKsByyXANdJAkEXAXeIJ+ox/vhGD26X7yX6pDDGmaezkBy6g==}
 
-  fastify@5.11.0:
-    resolution: {integrity: sha512-Y/Ecx1yt0hYzrQR+QVLbxaUN8wCX+MQzMevh29r5RRvlOIArmi4+WAXXaGl5Hw5gBr2wduZpZaT3gRCnXoyVgA==}
+  fastify@5.11.2:
+    resolution: {integrity: sha512-i/eJG7nXR9OkbFgoX4jFiPOHoRq0rXqDACVAXELh5Fdg6BFBErIVZ8MyibGCwup9Go1pYrxZJ0ogIub8vVdEcQ==}
 
   fastq@1.20.1:
     resolution: {integrity: sha512-GGToxJ/w1x32s/D2EKND7kTil4n8OVk/9mycTc4VDza13lOvpUZTGX3mFSCtV9ksdGBVzvsyAVLM6mHFThxXxw==}
@@ -3297,13 +3297,13 @@ snapshots:
   fastify-mcp@2.1.0(supports-color@7.2.0)(zod@4.4.3):
     dependencies:
       '@modelcontextprotocol/sdk': 1.29.0(supports-color@7.2.0)(zod@4.4.3)
-      fastify: 5.11.0
+      fastify: 5.11.2
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - supports-color
       - zod
 
-  fastify@5.11.0:
+  fastify@5.11.2:
     dependencies:
       '@fastify/ajv-compiler': 4.0.5
       '@fastify/error': 4.2.0
