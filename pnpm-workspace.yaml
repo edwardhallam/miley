@@ -2,7 +2,7 @@ packages:
   - packages/*
   - apps/*
 
-minimumReleaseAge: 10080
+minimumReleaseAge: 20160
 minimumReleaseAgeStrict: true
 
 allowBuilds:
