@@ -157,11 +157,16 @@ Your appendInstruction text here.
 | `linear` | object | `token`, `workspaceId`, `workspaceName` |
 | `repositories` | array | Repository configurations |
 | `defaultRunner` | string | Runner type (default: `"claude"`) |
-| `claudeDefaultModel` | string | Default Claude model |
+| `claudeDefaultModel` | string | Default Claude model (runtime default: `claude-opus-5`) |
+| `claudeDefaultFallbackModel` | string | Optional explicit same-provider fallback; unset by default |
 | `defaultAllowedTools` | string[] | Tools allowed across all repos |
 | `defaultDisallowedTools` | string[] | Tools blocked across all repos |
 | `global_setup_script` | string | Script run in new worktrees |
 | `userAccessControl` | object | Global user whitelist/blacklist |
+
+Claude sessions run at `high` effort unless a runner caller explicitly
+overrides it. Miley does not automatically replay a stateful coding session
+through a different provider.
 
 ## Monorepo Structure
 
