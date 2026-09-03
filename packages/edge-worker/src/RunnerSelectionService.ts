@@ -68,7 +68,9 @@ export class RunnerSelectionService {
 	public getDefaultModelForRunner(runnerType: RunnerType): string {
 		if (runnerType === "claude") {
 			return (
-				this.config.claudeDefaultModel || this.config.defaultModel || "opus"
+				this.config.claudeDefaultModel ||
+				this.config.defaultModel ||
+				"claude-opus-5"
 			);
 		}
 		if (runnerType === "gemini") {
@@ -84,12 +86,13 @@ export class RunnerSelectionService {
 	 * Resolve default fallback model for a given runner from config with sensible built-in defaults.
 	 * Supports legacy Claude fallback key for backwards compatibility.
 	 */
-	public getDefaultFallbackModelForRunner(runnerType: RunnerType): string {
+	public getDefaultFallbackModelForRunner(
+		runnerType: RunnerType,
+	): string | undefined {
 		if (runnerType === "claude") {
 			return (
 				this.config.claudeDefaultFallbackModel ||
-				this.config.defaultFallbackModel ||
-				"sonnet"
+				this.config.defaultFallbackModel
 			);
 		}
 		if (runnerType === "gemini") {
@@ -160,7 +163,7 @@ export class RunnerSelectionService {
 			codex: this.getDefaultModelForRunner("codex"),
 			cursor: this.getDefaultModelForRunner("cursor"),
 		};
-		const defaultFallbackByRunner: Record<RunnerType, string> = {
+		const defaultFallbackByRunner: Record<RunnerType, string | undefined> = {
 			claude: this.getDefaultFallbackModelForRunner("claude"),
 			gemini: this.getDefaultFallbackModelForRunner("gemini"),
 			codex: this.getDefaultFallbackModelForRunner("codex"),
@@ -192,11 +195,7 @@ export class RunnerSelectionService {
 		): string | undefined => {
 			const normalizedModel = model.toLowerCase();
 			if (runnerType === "claude") {
-				if (normalizedModel === "opus") return "sonnet";
-				if (normalizedModel === "sonnet") return "haiku";
-				// Keep haiku fallback on sonnet for retry behavior
-				if (normalizedModel === "haiku") return "sonnet";
-				return "sonnet";
+				return undefined;
 			}
 			if (runnerType === "gemini") {
 				if (

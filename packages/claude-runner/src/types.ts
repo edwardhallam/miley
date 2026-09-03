@@ -33,6 +33,7 @@ export interface ClaudeRunnerConfig {
 	mcpConfig?: Record<string, McpServerConfig>; // Additional/override MCP servers
 	model?: string; // Claude model to use (e.g., "opus", "sonnet", "haiku")
 	fallbackModel?: string; // Fallback model if primary model is unavailable
+	effort?: "low" | "medium" | "high" | "xhigh" | "max";
 	maxTurns?: number; // Maximum number of turns before completing the session
 	tools?: string[]; // Built-in tools available in model context (empty array disables all tools)
 	mileyHome: string; // Miley home directory

@@ -410,6 +410,8 @@ export interface AgentRunnerConfig {
 	model?: string;
 	/** Fallback model if primary is unavailable */
 	fallbackModel?: string;
+	/** Claude reasoning effort for this session */
+	effort?: "low" | "medium" | "high" | "xhigh" | "max";
 	/** Maximum number of turns before completing session */
 	maxTurns?: number;
 	/** Built-in tools available in model context (empty array disables all tools) */

@@ -3479,7 +3479,9 @@ ${taskSection}`;
 	 * Resolve default fallback model for a given runner from config with sensible built-in defaults.
 	 * Supports legacy Claude fallback key for backwards compatibility.
 	 */
-	private getDefaultFallbackModelForRunner(runnerType: RunnerType): string {
+	private getDefaultFallbackModelForRunner(
+		runnerType: RunnerType,
+	): string | undefined {
 		return this.runnerSelectionService.getDefaultFallbackModelForRunner(
 			runnerType,
 		);
@@ -4697,6 +4699,10 @@ ${input.userComment}
 		}
 
 		const claudePlugins = this.buildClaudePlugins(runnerType);
+		const fallbackModel =
+			fallbackModelOverride ||
+			repository.fallbackModel ||
+			this.getDefaultFallbackModelForRunner(runnerType);
 
 		const config = {
 			workingDirectory: session.workspace.path,
@@ -4713,12 +4719,10 @@ ${input.userComment}
 			...(disallowAllTools && { tools: [] }),
 			// Priority order: label override > repository config > global default
 			model: effectiveModel,
-			// fallbackModel intentionally NOT normalized — keeps 200K context for
-			// cost-sensitive retry path (e.g. "opus" falls back to default 200K model)
-			fallbackModel:
-				fallbackModelOverride ||
-				repository.fallbackModel ||
-				this.getDefaultFallbackModelForRunner(runnerType),
+			...(runnerType === "claude" ? { effort: "high" as const } : {}),
+			// Cross-provider fallback is not replay-safe for Miley's stateful coding
+			// sessions. Preserve only an explicitly configured same-provider fallback.
+			...(fallbackModel ? { fallbackModel } : {}),
 			logger: log,
 			hooks,
 			...(claudePlugins.length > 0 && { plugins: claudePlugins }),
