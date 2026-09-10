@@ -1,5 +1,10 @@
 # Miley
 
+> [!NOTE]
+> **Archived — no longer actively maintained.** Miley remains public as a portfolio of my work on autonomous development workflows and Linear integrations. Updates and support are no longer planned.
+>
+> **Recommended alternative: [Linear Agents](https://linear.app/agents).** Linear now offers its own first-party Linear Agent alongside an ecosystem of integrated agents. For new workflows, use Linear's native agent solution rather than deploying Miley. The source and documentation below are preserved for reference and forking under the Apache 2.0 license.
+
 A Claude Code agent for [Linear](https://linear.app). Assign an issue, get an autonomous development session.
 
 Miley watches your Linear workspace for issue assignments, spins up isolated git worktrees, and launches Claude Code sessions that work the issue end-to-end — reading your CLAUDE.md, using your skills, and streaming progress back to Linear as it goes.
